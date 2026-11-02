@@ -1,0 +1,10 @@
+Metadata-Version: 2.4
+Name: trackeval
+Version: 1.0.dev1+mtmct
+Summary: TrackEval (vendored, numpy>=1.24 patched)
+License: MIT
+Requires-Python: >=3.8
+License-File: LICENSE
+Requires-Dist: numpy
+Requires-Dist: scipy
+Dynamic: license-file

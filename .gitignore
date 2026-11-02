@@ -1,1 +1,16 @@
 agent-dump/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+data/
+cache/
+models/
+outputs/
+db/
+web/node_modules/
+web/dist/
+web/test-results/
+web/playwright-report/

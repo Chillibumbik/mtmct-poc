@@ -1,0 +1,18 @@
+# Defaults for every run. Profiles and datasets override; UI overrides use dotted keys.
+data:
+  target_fps: 10
+  max_rss_gb: 9.0
+detect: {name: yolox_s, params: {conf: 0.3, nms: 0.45, input_size: 640}}
+track: {name: bytetrack, params: {}}
+reid: {name: osnet_ain_x1_0, params: {batch: 32}}
+refine: {enabled: true}
+portrait: {reid_stride: 3, top_k: 10}
+geometry: {foot_point: {name: bottom_center}, smooth_window: 5}
+associate:
+  costs:
+    appearance: {weight: 1.0, params: {agg: mean}}
+  constraints: {same_camera_overlap: cannot_link}
+  rerank: null
+  solver: {name: agglomerative, params: {linkage: average, threshold: 0.45}}
+postprocess: {min_global_len: 10, drop_short_single_camera: true}
+eval: {iou: 0.5}

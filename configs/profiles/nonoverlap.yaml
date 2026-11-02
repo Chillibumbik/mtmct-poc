@@ -1,0 +1,4 @@
+# Non-overlapping cameras: appearance + transition-time windows from topology.json (spec §8.7).
+associate:
+  costs:
+    time: {weight: 0.5, params: {hard: true, unseen_penalty: 0.5}}
