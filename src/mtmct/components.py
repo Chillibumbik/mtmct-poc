@@ -67,6 +67,6 @@ class Cost(Protocol):
 
 
 class Solver(Protocol):
-    def solve(self, dist: np.ndarray, cannot_link: np.ndarray) -> np.ndarray:
-        """Symmetric `(T, T)` distance + constraints → `(T,)` int64 cluster labels starting at 0."""
+    def solve(self, dist: np.ndarray, cannot_link: np.ndarray, cameras: np.ndarray | None = None) -> np.ndarray:
+        """Symmetric `(T, T)` distance + constraints (+ camera of each tracklet) → `(T,)` int64 labels from 0."""
         ...
