@@ -11,15 +11,15 @@ from mtmct.registry import register
 Track = tuple[np.ndarray, np.ndarray]  # ts (n,), world xy (n, 2), sorted by ts
 
 
-def _mean_distance(a: Track, b: Track) -> float:
-    """Mean ground distance over the common time span, both tracks interpolated to the union of their timestamps."""
+def _median_distance(a: Track, b: Track) -> float:
+    """Median ground distance (robust to calibration outliers) over the common time span, on the union of timestamps."""
     lo, hi = max(a[0][0], b[0][0]), min(a[0][-1], b[0][-1])
     grid = np.union1d(*(t[(t >= lo) & (t <= hi)] for t, _ in (a, b)))
 
     def at(tr: Track) -> np.ndarray:
         return np.column_stack([np.interp(grid, tr[0], tr[1][:, 0]), np.interp(grid, tr[0], tr[1][:, 1])])
 
-    return float(np.linalg.norm(at(a) - at(b), axis=1).mean())
+    return float(np.median(np.linalg.norm(at(a) - at(b), axis=1)))
 
 
 @register("cost", "geometry")
@@ -31,6 +31,7 @@ class Geometry:
     class Params(BaseModel):
         gate_m: float = Field(1.5, gt=0, description="Co-visible tracklets farther apart than this cannot link")
         max_speed_mps: float = Field(3.0, gt=0, description="Max walking speed between consecutive tracklets")
+        hard: bool = Field(True, description="Turn gate/speed violations into cannot-links (off for noisy calibration)")
 
     def __init__(self, params: Params) -> None:
         self.params = params
@@ -59,14 +60,15 @@ class Geometry:
         gap = start[None, :] - end[:, None]
         jump = np.hypot(entry[None, :, 0] - exit_[:, None, 0], entry[None, :, 1] - exit_[:, None, 1])
         too_fast = (gap > 0) & (np.maximum(jump - self.params.gate_m, 0) > self.params.max_speed_mps * gap)
-        cl |= too_fast | too_fast.T
+        if self.params.hard:
+            cl |= too_fast | too_fast.T
 
         cams = ctx.portraits["camera_id"].to_numpy()
         covisible = (gap <= 0) & (gap.T <= 0) & (cams[:, None] != cams[None, :])  # NaN (no track) compares False
         for i, j in zip(*np.nonzero(np.triu(covisible, 1)), strict=True):
             a, b = tracks[i], tracks[j]
             assert a is not None and b is not None
-            d = _mean_distance(a, b)
+            d = _median_distance(a, b)
             dist[i, j] = dist[j, i] = min(d / self.params.gate_m, 1.0)
-            cl[i, j] = cl[j, i] = d > self.params.gate_m
+            cl[i, j] = cl[j, i] = self.params.hard and d > self.params.gate_m
         return CostMatrix(dist, cl)

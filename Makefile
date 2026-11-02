@@ -32,13 +32,14 @@ type:
 test:
 	$(UV) pytest -q -m "not data and not slow"
 check: lint type test
-	@if [ -f web/package.json ]; then cd web && pnpm tsc --noEmit && pnpm vitest run && pnpm lint; fi
+	@if [ -f web/package.json ]; then cd web && pnpm typecheck && pnpm test && pnpm lint; fi
 
 e2e:              ## smoke end-to-end on epfl_terrace (needs data + models)
 	$(UV) pytest -q -m "e2e"
 
 openapi:
 	$(UV) python -c "import json; from mtmct.api.app import app; print(json.dumps(app.openapi(), indent=1))" > web/openapi.json
+	cd web && pnpm gen:api
 
 up:
 	docker compose up --build -d
