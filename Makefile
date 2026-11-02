@@ -27,7 +27,7 @@ lint:
 	$(UV) ruff check src tests
 	$(UV) ruff format --check src tests
 type:
-	$(UV) mypy src/mtmct/io src/mtmct/config.py src/mtmct/registry.py src/mtmct/associate src/mtmct/eval
+	$(UV) mypy src/mtmct/io src/mtmct/config.py src/mtmct/registry.py src/mtmct/associate src/mtmct/eval src/mtmct/track src/mtmct/refine
 test:
 	$(UV) pytest -q -m "not data and not slow"
 check: lint type test
