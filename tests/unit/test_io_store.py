@@ -42,6 +42,7 @@ def test_global_tracks_csv_roundtrip_with_null_world(tmp_path):
         {
             "camera_id": ["c0"],
             "global_id": [3],
+            "tracklet_id": [10000001],
             "frame_id": [7],
             "x": [1.0],
             "y": [1.0],
