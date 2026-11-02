@@ -8,6 +8,7 @@ setup:            ## install python + web deps and model weights
 	uv sync --all-groups
 	cd web && pnpm install
 	$(UV) python -m mtmct.models
+	uv run --group export python scripts/export_osnet.py
 
 dev:              ## api + worker + vite dev server
 	@trap 'kill 0' EXIT; \

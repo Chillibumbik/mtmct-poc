@@ -50,6 +50,15 @@ dev = [
     "ruff>=0.17.3",
     "types-pyyaml>=6.0.12.20261030",
 ]
+export = [
+    "onnx>=1.23.2",
+    "torch>=2.15.0",
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.uv.workspace]
 members = [
@@ -58,6 +67,7 @@ members = [
 
 [tool.uv.sources]
 trackeval = { workspace = true }
+torch = { index = "pytorch-cpu" }
 
 [tool.ruff]
 line-length = 120
