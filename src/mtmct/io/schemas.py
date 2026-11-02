@@ -85,6 +85,7 @@ class GlobalTracks(_Base):
 
     camera_id: Series[str]
     global_id: Series[int] = pa.Field(ge=0)
+    tracklet_id: Series[int]  # source single-camera tracklet (for error analysis and the player)
     frame_id: Series[int] = pa.Field(ge=0)
     x: Series[float]
     y: Series[float]
