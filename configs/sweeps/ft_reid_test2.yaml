@@ -1,0 +1,64 @@
+# FT phase 1, solver threshold rule v2 (TUNE only): maximise full-tune + oracle-tune X IDF1 at refine split 0.95
+# (rule v1 used the full-tune curve alone and broke oracle on AIC24: oracle tune 0.597 @0.25 vs 0.966 @0.65).
+# campus 0.55 (unchanged, ft_reid_test.yaml), chirla 0.25, wildtrack 0.25, aic24 0.65.
+runs:
+- name: ft · reid · full · wildtrack test · thr 0.25
+  dataset: wildtrack
+  sequence: main
+  split: test
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.25
+- name: ft · reid · oracle · wildtrack test · thr 0.25
+  dataset: wildtrack
+  sequence: main
+  split: test
+  mode: oracle
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.25
+- name: ft · reid · full · aic24 scene_041 test · thr 0.65
+  dataset: aic24
+  sequence: scene_041
+  split: test
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.65
+- name: ft · reid · oracle · aic24 scene_041 test · thr 0.65
+  dataset: aic24
+  sequence: scene_041
+  split: test
+  mode: oracle
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.65
+- name: ft · reid · full · chirla seq_002 test · thr 0.25
+  dataset: chirla
+  sequence: seq_002
+  split: test
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.25
+- name: ft · reid · oracle · chirla seq_002 test · thr 0.25
+  dataset: chirla
+  sequence: seq_002
+  split: test
+  mode: oracle
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.25

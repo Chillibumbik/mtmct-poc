@@ -33,7 +33,8 @@ def server(tmp_path: Path) -> Iterator[str]:
 def test_manifest_is_complete():
     assert {"yolox_s", "yolox_tiny", "osnet_ain_x1_0", "osnet_x0_25", "omz_0287"} <= set(models.MODELS)
     for spec in models.MODELS.values():
-        assert len(spec.sha256) == 64 and spec.url.startswith("https://") and spec.licence
+        assert len(spec.sha256) == 64 and spec.licence
+        assert spec.url.startswith("https://") or (spec.kind == "trained" and "scripts/finetune_" in spec.url)
         assert all(len(sha) == 64 for _, sha in spec.companions)
 
 
@@ -61,6 +62,11 @@ def test_ensure_model_downloads_once_and_reuses(home: Path, server: str, monkeyp
 def test_ensure_model_export_kind_points_to_export_script(home: Path):
     with pytest.raises(FileNotFoundError, match=r"export_osnet\.py"):
         models.ensure_model("osnet_ain_x1_0")
+
+
+def test_ensure_model_trained_kind_points_to_finetune_script(home: Path):
+    with pytest.raises(FileNotFoundError, match=r"finetune_reid\.py"):
+        models.ensure_model("osnet_ain_x1_0_ft")
 
 
 def test_ensure_model_unknown_name():

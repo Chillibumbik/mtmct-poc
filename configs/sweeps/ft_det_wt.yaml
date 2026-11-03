@@ -1,0 +1,27 @@
+# FT phase 2: WILDTRACK-specific detector (yolox_s_ft + WILDTRACK tune frames), test and tune.
+runs:
+- name: ft · det WT · full · wildtrack test
+  dataset: wildtrack
+  sequence: main
+  split: test
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft_wt
+- name: ft · det WT+reid · full · wildtrack test
+  dataset: wildtrack
+  sequence: main
+  split: test
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft_wt
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.25
+- name: ft · det WT · tune · wildtrack tune
+  dataset: wildtrack
+  sequence: main
+  split: tune
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft_wt

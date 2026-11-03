@@ -28,3 +28,11 @@ class OsnetX025(_Osnet):
     """OSNet x0.25, MSMT17 (fastest)."""
 
     MODEL = "osnet_x0_25"
+
+
+@register("reid", "osnet_ain_x1_0_ft")
+class OsnetAinX10Ft(_Osnet):
+    """OSNet-AIN x1.0 fine-tuned on GT crops of the tune splits (`scripts/finetune_reid.py`); same preprocessing."""
+
+    LICENCE = "code MIT (torchreid); MSMT17 init + fine-tuned on open datasets (tune splits), research use only"
+    MODEL = "osnet_ain_x1_0_ft"

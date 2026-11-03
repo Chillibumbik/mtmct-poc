@@ -1,0 +1,130 @@
+# FT phase 1, round 2 (TUNE only): stronger refine split for the ft model + oracle (GT tracklets) ft vs base.
+runs:
+- name: ft · reid · tune · garden1 tune · split 0.9
+  dataset: campus
+  sequence: garden1
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.9
+    refine.stitch_app_thr: 0.9
+- name: ft · reid · tune · garden1 tune · split 0.95
+  dataset: campus
+  sequence: garden1
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+- name: ft · reid · tune · chirla seq_001 tune · split 0.9
+  dataset: chirla
+  sequence: seq_001
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.9
+    refine.stitch_app_thr: 0.9
+- name: ft · reid · tune · chirla seq_001 tune · split 0.95
+  dataset: chirla
+  sequence: seq_001
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+- name: ft · reid · tune · wildtrack tune · split 0.9
+  dataset: wildtrack
+  sequence: main
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.9
+    refine.stitch_app_thr: 0.9
+- name: ft · reid · tune · wildtrack tune · split 0.95
+  dataset: wildtrack
+  sequence: main
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+- name: ft · reid · tune · aic24 tune · split 0.9
+  dataset: aic24
+  sequence: scene_041
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.9
+    refine.stitch_app_thr: 0.9
+- name: ft · reid · tune · aic24 tune · split 0.95
+  dataset: aic24
+  sequence: scene_041
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+- name: ft · reid · tune · garden1 tune · oracle · ft
+  dataset: campus
+  sequence: garden1
+  split: tune
+  mode: oracle
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+- name: ft · reid · tune · garden1 tune · oracle · base
+  dataset: campus
+  sequence: garden1
+  split: tune
+  mode: oracle
+  overrides:
+    reid.name: osnet_ain_x1_0
+- name: ft · reid · tune · chirla seq_001 tune · oracle · ft
+  dataset: chirla
+  sequence: seq_001
+  split: tune
+  mode: oracle
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+- name: ft · reid · tune · chirla seq_001 tune · oracle · base
+  dataset: chirla
+  sequence: seq_001
+  split: tune
+  mode: oracle
+  overrides:
+    reid.name: osnet_ain_x1_0
+- name: ft · reid · tune · wildtrack tune · oracle · ft
+  dataset: wildtrack
+  sequence: main
+  split: tune
+  mode: oracle
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+- name: ft · reid · tune · wildtrack tune · oracle · base
+  dataset: wildtrack
+  sequence: main
+  split: tune
+  mode: oracle
+  overrides:
+    reid.name: osnet_ain_x1_0
+- name: ft · reid · tune · aic24 tune · oracle · ft
+  dataset: aic24
+  sequence: scene_041
+  split: tune
+  mode: oracle
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+- name: ft · reid · tune · aic24 tune · oracle · base
+  dataset: aic24
+  sequence: scene_041
+  split: tune
+  mode: oracle
+  overrides:
+    reid.name: osnet_ain_x1_0

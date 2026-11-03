@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import importlib.metadata
 import json
+import os
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -205,7 +206,7 @@ def run_pipeline(
     should_cancel: Callable[[], bool],
 ) -> RunResult:
     """Run one sequence end to end. Raises RunCancelled / MemoryLimitExceeded; partial stage dirs never remain."""
-    run_dir = out_dir or paths().outputs / f"cli-{datetime.now():%Y%m%d-%H%M%S}"
+    run_dir = out_dir or paths().outputs / f"cli-{datetime.now():%Y%m%d-%H%M%S}-{os.getpid()}"
     run_dir.mkdir(parents=True, exist_ok=True)
     write_run_header(run_dir, cfg)
     t_range = time_range(cfg, seq, split)

@@ -1,0 +1,10 @@
+# FT phase 2 final TEST, detector only (conf 0.6 chosen on tune: mean X IDF1 over garden1/aic24/chirla).
+runs:
+- name: ft · det(conf 0.6) · full · garden2 test
+  dataset: campus
+  sequence: garden2
+  split: test
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft
+    detect.params.conf: 0.6

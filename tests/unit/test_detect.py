@@ -105,6 +105,8 @@ def test_detector_registered_with_input_sizes():
         pytest.param("yolox_s", "openvino", marks=needs_weights("yolox_s")),
         pytest.param("yolox_s", "onnxruntime", marks=needs_weights("yolox_s")),
         pytest.param("yolox_tiny", "openvino", marks=needs_weights("yolox_tiny")),
+        pytest.param("yolox_s_ft", "openvino", marks=needs_weights("yolox_s_ft")),
+        pytest.param("yolox_s_ft_wt", "openvino", marks=needs_weights("yolox_s_ft_wt")),
     ],
 )
 def test_yolox_detects_person_on_sample(name: str, backend: str):

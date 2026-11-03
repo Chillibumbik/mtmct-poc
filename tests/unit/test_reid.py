@@ -11,12 +11,12 @@ from mtmct.config import paths
 from mtmct.models import EXPORT_HINT, MODELS
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "models"
-DIMS = {"osnet_ain_x1_0": 512, "osnet_x0_25": 512, "omz_0287": 256}
+DIMS = {"osnet_ain_x1_0": 512, "osnet_x0_25": 512, "omz_0287": 256, "osnet_ain_x1_0_ft": 512}
 
 
 def needs_weights(name: str):
     path = paths().models / MODELS[name].filename
-    hint = EXPORT_HINT if MODELS[name].kind == "export" else "uv run python -m mtmct.models"
+    hint = {"export": EXPORT_HINT, "trained": MODELS[name].url}.get(MODELS[name].kind, "uv run python -m mtmct.models")
     return pytest.mark.skipif(not path.exists(), reason=f"{path} missing: run `{hint}`")
 
 

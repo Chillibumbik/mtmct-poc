@@ -117,3 +117,19 @@ class YoloxTiny(_Yolox):
 
     class Params(_Yolox.Params):
         input_size: int = Field(416, multiple_of=32)
+
+
+@register("detector", "yolox_s_ft")
+class YoloxSFt(YoloxS):
+    """YOLOX-s fine-tuned on persons of the tune splits without WILDTRACK (`scripts/finetune_yolox.py`)."""
+
+    LICENCE = "Apache-2.0 (YOLOX, COCO init); fine-tuned on open datasets (tune splits), research use"
+    MODEL = "yolox_s_ft"
+
+
+@register("detector", "yolox_s_ft_wt")
+class YoloxSFtWt(YoloxS):
+    """`yolox_s_ft` further tuned on WILDTRACK tune frames: learns its box convention and annotated zone."""
+
+    LICENCE = "Apache-2.0 (YOLOX, COCO init); fine-tuned on open datasets (tune splits), research use"
+    MODEL = "yolox_s_ft_wt"

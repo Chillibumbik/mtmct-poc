@@ -1,0 +1,183 @@
+# FT phase 1: refine thresholds for reid/osnet_ain_x1_0_ft on TUNE splits (full); solver threshold read from
+# the threshold curve of each run. Submit: uv run python agent-dump/scripts/t13b_submit.py configs/sweeps/ft_reid_tune.yaml
+runs:
+- name: ft · reid · tune · garden1 tune · split 0.75
+  dataset: campus
+  sequence: garden1
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.75
+    refine.stitch_app_thr: 0.75
+- name: ft · reid · tune · garden1 tune · split 0.65
+  dataset: campus
+  sequence: garden1
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.65
+    refine.stitch_app_thr: 0.65
+- name: ft · reid · tune · garden1 tune · split 0.7
+  dataset: campus
+  sequence: garden1
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.7
+    refine.stitch_app_thr: 0.7
+- name: ft · reid · tune · garden1 tune · split 0.8
+  dataset: campus
+  sequence: garden1
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.8
+    refine.stitch_app_thr: 0.8
+- name: ft · reid · tune · garden1 tune · split 0.85
+  dataset: campus
+  sequence: garden1
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.85
+    refine.stitch_app_thr: 0.85
+- name: ft · reid · tune · chirla seq_001 tune · split 0.75
+  dataset: chirla
+  sequence: seq_001
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.75
+    refine.stitch_app_thr: 0.75
+- name: ft · reid · tune · chirla seq_001 tune · split 0.65
+  dataset: chirla
+  sequence: seq_001
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.65
+    refine.stitch_app_thr: 0.65
+- name: ft · reid · tune · chirla seq_001 tune · split 0.7
+  dataset: chirla
+  sequence: seq_001
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.7
+    refine.stitch_app_thr: 0.7
+- name: ft · reid · tune · chirla seq_001 tune · split 0.8
+  dataset: chirla
+  sequence: seq_001
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.8
+    refine.stitch_app_thr: 0.8
+- name: ft · reid · tune · chirla seq_001 tune · split 0.85
+  dataset: chirla
+  sequence: seq_001
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.85
+    refine.stitch_app_thr: 0.85
+- name: ft · reid · tune · wildtrack tune · split 0.75
+  dataset: wildtrack
+  sequence: main
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.75
+    refine.stitch_app_thr: 0.75
+- name: ft · reid · tune · wildtrack tune · split 0.65
+  dataset: wildtrack
+  sequence: main
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.65
+    refine.stitch_app_thr: 0.65
+- name: ft · reid · tune · wildtrack tune · split 0.7
+  dataset: wildtrack
+  sequence: main
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.7
+    refine.stitch_app_thr: 0.7
+- name: ft · reid · tune · wildtrack tune · split 0.8
+  dataset: wildtrack
+  sequence: main
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.8
+    refine.stitch_app_thr: 0.8
+- name: ft · reid · tune · wildtrack tune · split 0.85
+  dataset: wildtrack
+  sequence: main
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.85
+    refine.stitch_app_thr: 0.85
+- name: ft · reid · tune · aic24 tune · split 0.75
+  dataset: aic24
+  sequence: scene_041
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.75
+    refine.stitch_app_thr: 0.75
+- name: ft · reid · tune · aic24 tune · split 0.65
+  dataset: aic24
+  sequence: scene_041
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.65
+    refine.stitch_app_thr: 0.65
+- name: ft · reid · tune · aic24 tune · split 0.7
+  dataset: aic24
+  sequence: scene_041
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.7
+    refine.stitch_app_thr: 0.7
+- name: ft · reid · tune · aic24 tune · split 0.8
+  dataset: aic24
+  sequence: scene_041
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.8
+    refine.stitch_app_thr: 0.8
+- name: ft · reid · tune · aic24 tune · split 0.85
+  dataset: aic24
+  sequence: scene_041
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.85
+    refine.stitch_app_thr: 0.85

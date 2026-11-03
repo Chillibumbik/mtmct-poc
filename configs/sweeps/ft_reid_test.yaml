@@ -1,0 +1,85 @@
+# FT phase 1: TEST evaluation of reid/osnet_ain_x1_0_ft with thresholds chosen on TUNE (ft_reid_tune*.yaml):
+# refine split = stitch = 0.95 (mean tune X IDF1 0.609 vs 0.592 @0.97, 0.594 @0.9, base model 0.580);
+# solver threshold = best point of each dataset's tune curve at split 0.95 (campus flat → 0.55 kept, chirla 0.30,
+# wildtrack 0.30 (tie with 0.25), aic24 0.25). Everything else = dataset defaults (same as v2 final matrix).
+runs:
+- name: ft · reid · full · garden2 test
+  dataset: campus
+  sequence: garden2
+  split: test
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.55
+- name: ft · reid · oracle · garden2 test
+  dataset: campus
+  sequence: garden2
+  split: test
+  mode: oracle
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.55
+- name: ft · reid · full · wildtrack test
+  dataset: wildtrack
+  sequence: main
+  split: test
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.3
+- name: ft · reid · oracle · wildtrack test
+  dataset: wildtrack
+  sequence: main
+  split: test
+  mode: oracle
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.3
+- name: ft · reid · full · aic24 scene_041 test
+  dataset: aic24
+  sequence: scene_041
+  split: test
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.25
+- name: ft · reid · oracle · aic24 scene_041 test
+  dataset: aic24
+  sequence: scene_041
+  split: test
+  mode: oracle
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.25
+- name: ft · reid · full · chirla seq_002 test
+  dataset: chirla
+  sequence: seq_002
+  split: test
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.3
+- name: ft · reid · oracle · chirla seq_002 test
+  dataset: chirla
+  sequence: seq_002
+  split: test
+  mode: oracle
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.3

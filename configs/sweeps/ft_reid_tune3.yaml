@@ -1,0 +1,38 @@
+# FT phase 1, round 3 (TUNE): split 0.97 for the ft model.
+runs:
+- name: ft · reid · tune · garden1 tune · split 0.97
+  dataset: campus
+  sequence: garden1
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.97
+    refine.stitch_app_thr: 0.97
+- name: ft · reid · tune · chirla seq_001 tune · split 0.97
+  dataset: chirla
+  sequence: seq_001
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.97
+    refine.stitch_app_thr: 0.97
+- name: ft · reid · tune · wildtrack tune · split 0.97
+  dataset: wildtrack
+  sequence: main
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.97
+    refine.stitch_app_thr: 0.97
+- name: ft · reid · tune · aic24 tune · split 0.97
+  dataset: aic24
+  sequence: scene_041
+  split: tune
+  mode: full
+  overrides:
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.97
+    refine.stitch_app_thr: 0.97

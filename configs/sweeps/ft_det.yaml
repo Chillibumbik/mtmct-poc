@@ -1,0 +1,103 @@
+# FT phase 2: detector/yolox_s_ft (general variant, no WILDTRACK in training) on TEST (full), alone and with the
+# fine-tuned ReID (thresholds = ft_reid_test2.yaml rule v2), then on TUNE (detector only) for the default decision.
+runs:
+- name: ft · det · full · garden2 test
+  dataset: campus
+  sequence: garden2
+  split: test
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft
+- name: ft · det · full · wildtrack test
+  dataset: wildtrack
+  sequence: main
+  split: test
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft
+- name: ft · det · full · aic24 scene_041 test
+  dataset: aic24
+  sequence: scene_041
+  split: test
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft
+- name: ft · det · full · chirla seq_002 test
+  dataset: chirla
+  sequence: seq_002
+  split: test
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft
+- name: ft · det+reid · full · garden2 test
+  dataset: campus
+  sequence: garden2
+  split: test
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.55
+- name: ft · det+reid · full · wildtrack test
+  dataset: wildtrack
+  sequence: main
+  split: test
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.25
+- name: ft · det+reid · full · aic24 scene_041 test
+  dataset: aic24
+  sequence: scene_041
+  split: test
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.65
+- name: ft · det+reid · full · chirla seq_002 test
+  dataset: chirla
+  sequence: seq_002
+  split: test
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.25
+- name: ft · det · tune · garden1 tune
+  dataset: campus
+  sequence: garden1
+  split: tune
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft
+- name: ft · det · tune · wildtrack tune
+  dataset: wildtrack
+  sequence: main
+  split: tune
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft
+- name: ft · det · tune · chirla seq_001 tune
+  dataset: chirla
+  sequence: seq_001
+  split: tune
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft
+- name: ft · det · tune · aic24 tune
+  dataset: aic24
+  sequence: scene_041
+  split: tune
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft

@@ -3,6 +3,8 @@
 `kind="onnx"`: `url` is the final model file (ONNX, or an OpenVINO IR `.xml` with its `.bin` in `companions`).
 `kind="export"`: `url`/`sha256` describe the source PyTorch checkpoint, and `filename` is the ONNX produced by
 `scripts/export_osnet.py` (needs the `export` dependency group).
+`kind="trained"`: fine-tuned locally on the tune splits of open datasets; `url` is the command that rebuilds the file
+and `sha256` identifies the file the reported numbers came from (retraining gives other weights, so it is not checked).
 """
 
 from __future__ import annotations
@@ -24,6 +26,9 @@ _OMZ = "https://storage.openvinotoolkit.org/repositories/open_model_zoo/2023.0/m
 _OSNET = "https://huggingface.co/kaiyangzhou/osnet/resolve/main"
 _OSNET_LICENCE = "code MIT (torchreid); weights trained on MSMT17 (research use only)"
 EXPORT_HINT = "uv run --group export python scripts/export_osnet.py"
+_FT_LICENCE = "fine-tuned on open datasets (tune splits), research use"
+_FT_REID = "uv run --group export python scripts/finetune_reid.py {build,train,export}"
+_FT_DET = "uv run --group export python scripts/finetune_yolox.py {build,train,export}"
 
 
 @dataclass(frozen=True)
@@ -33,7 +38,7 @@ class ModelSpec:
     sha256: str
     licence: str
     filename: str
-    kind: Literal["onnx", "export"] = "onnx"
+    kind: Literal["onnx", "export", "trained"] = "onnx"
     companions: tuple[tuple[str, str], ...] = ()  # extra (url, sha256) saved next to the main file, same stem
 
 
@@ -84,6 +89,30 @@ MODELS: dict[str, ModelSpec] = {
             "osnet_x0_25_msmt17.onnx",
             "export",
         ),
+        ModelSpec(
+            "osnet_ain_x1_0_ft",
+            _FT_REID,
+            "daf50607027575e16c2f1476f3debfcfe8af9aa16fbab73b881f0a3955d73a8b",
+            f"{_OSNET_LICENCE}; {_FT_LICENCE}",
+            "osnet_ain_x1_0_ft.onnx",
+            "trained",
+        ),
+        ModelSpec(
+            "yolox_s_ft",
+            _FT_DET,
+            "7d8aef682fa056b1d98aaf86ec80b144385e3e2b3bcd8a8e30b9699a668d40c0",
+            f"Apache-2.0 (YOLOX, COCO init); {_FT_LICENCE}",
+            "yolox_s_ft.onnx",
+            "trained",
+        ),
+        ModelSpec(
+            "yolox_s_ft_wt",
+            _FT_DET,
+            "b1e6459ffa00efce52681795e5d54e205c6c7e68180074b64605ced47de4a331",
+            f"Apache-2.0 (YOLOX, COCO init); {_FT_LICENCE}; WILDTRACK annotation convention",
+            "yolox_s_ft_wt.onnx",
+            "trained",
+        ),
     )
 }
 
@@ -127,6 +156,8 @@ def ensure_model(name: str) -> Path:
         return path
     if spec.kind == "export":
         raise FileNotFoundError(f"{path} is missing: it is exported from PyTorch weights, run `{EXPORT_HINT}`")
+    if spec.kind == "trained":
+        raise FileNotFoundError(f"{path} is missing: it is produced by fine-tuning, run `{spec.url}`")
     for url, sha256 in spec.companions:
         _download(url, path.with_suffix(Path(url).suffix), sha256)
     return _download(spec.url, path, spec.sha256)

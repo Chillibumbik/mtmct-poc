@@ -1,0 +1,89 @@
+# FT phase 2 FINAL TEST (one run per sequence and config; everything chosen on TUNE, remote CLI runs ft_remote/tune*.sh):
+# detector conf 0.6 for yolox_s_ft (mean tune X IDF1 garden1/aic24/chirla: 0.694 / 0.703 / 0.729 / 0.758 / 0.725 for
+# conf 0.3-0.7); WILDTRACK uses yolox_s_ft_wt, conf 0.5 (tune 0.328 / 0.323 / 0.334 for 0.3 / 0.4 / 0.5).
+# det+reid: refine split 0.95 (tie with 0.9 on tune), solver thresholds by max(full tune + oracle tune X IDF1).
+runs:
+- name: ft final · det · full · garden2 test
+  dataset: campus
+  sequence: garden2
+  split: test
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft
+    detect.params.conf: 0.6
+    associate.solver.params.threshold: 0.55
+- name: ft final · det+reid · full · garden2 test
+  dataset: campus
+  sequence: garden2
+  split: test
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft
+    detect.params.conf: 0.6
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.55
+- name: ft final · det · full · aic24 scene_041 test
+  dataset: aic24
+  sequence: scene_041
+  split: test
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft
+    detect.params.conf: 0.6
+    associate.solver.params.threshold: 0.65
+- name: ft final · det+reid · full · aic24 scene_041 test
+  dataset: aic24
+  sequence: scene_041
+  split: test
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft
+    detect.params.conf: 0.6
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.65
+- name: ft final · det · full · chirla seq_002 test
+  dataset: chirla
+  sequence: seq_002
+  split: test
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft
+    detect.params.conf: 0.6
+    associate.solver.params.threshold: 0.35
+- name: ft final · det+reid · full · chirla seq_002 test
+  dataset: chirla
+  sequence: seq_002
+  split: test
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft
+    detect.params.conf: 0.6
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.25
+- name: ft final · det · full · wildtrack test
+  dataset: wildtrack
+  sequence: main
+  split: test
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft_wt
+    detect.params.conf: 0.5
+    associate.solver.params.threshold: 0.3
+- name: ft final · det+reid · full · wildtrack test
+  dataset: wildtrack
+  sequence: main
+  split: test
+  mode: full
+  overrides:
+    detect.name: yolox_s_ft_wt
+    detect.params.conf: 0.5
+    reid.name: osnet_ain_x1_0_ft
+    refine.split_thr: 0.95
+    refine.stitch_app_thr: 0.95
+    associate.solver.params.threshold: 0.25

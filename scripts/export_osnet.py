@@ -51,9 +51,12 @@ def export(name: str) -> Path:
     state = {k.removeprefix("module."): v for k, v in state.items()}
     model = load_factory(name)(num_classes=state["classifier.weight"].shape[0], pretrained=False)
     model.load_state_dict(state)
-    model.eval()
+    return to_onnx(model, paths().models / MODELS[name].filename)
 
-    out = paths().models / MODELS[name].filename
+
+def to_onnx(model: torch.nn.Module, out: Path) -> Path:
+    """Export a 256x128 OSNet to ONNX (dynamic batch) and check it against PyTorch with ONNX Runtime."""
+    model.eval()
     out.parent.mkdir(parents=True, exist_ok=True)
     dummy = torch.randn(2, 3, 256, 128)
     torch.onnx.export(
@@ -77,8 +80,8 @@ def export(name: str) -> Path:
     err = float(np.abs(ref - got).max())
     if got.shape != (5, 512) or err > 1e-3:
         out.unlink()
-        raise RuntimeError(f"{name}: ONNX output differs from PyTorch (shape {got.shape}, max abs err {err:.2e})")
-    print(f"{name}: {out} sha256={hashlib.sha256(out.read_bytes()).hexdigest()} max_abs_err={err:.1e}")
+        raise RuntimeError(f"{out.name}: ONNX output differs from PyTorch (shape {got.shape}, max abs err {err:.2e})")
+    print(f"{out}: sha256={hashlib.sha256(out.read_bytes()).hexdigest()} max_abs_err={err:.1e}")
     return out
 
 
