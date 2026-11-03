@@ -5,12 +5,13 @@ import { toast } from 'sonner'
 import type { EChartsOption } from 'echarts'
 import { errorText, urls } from '@/api/client'
 import { useDeleteRun, useJobEvents, useRun, useRunErrors, useRunMetrics } from '@/api/hooks'
-import type { ErrorsOut, RunOut } from '@/api/types.gen'
+import type { RunOut } from '@/api/types.gen'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Chart } from '@/components/app/Chart'
+import { TransitionMatrix } from '@/features/errors/TransitionMatrix'
 import type { ChartTheme } from '@/lib/chart'
 import { Confirm } from '@/components/app/ConfirmButton'
 import { DiffChips } from '@/components/app/DiffChips'
@@ -22,7 +23,6 @@ import { getPath } from '@/lib/config'
 import { STAGE_LABELS, formatDate, formatEta } from '@/lib/format'
 import { METRIC_SECTIONS, formatMetric } from '@/lib/metrics'
 import { parseRuntime } from '@/lib/runtime'
-import { cn } from '@/lib/utils'
 
 type MetricMap = Record<string, number | null>
 type Curve = { threshold: number; pairwise_p: number; pairwise_r: number; IDF1: number }[]
@@ -157,59 +157,6 @@ function StageTimeChart({ stages }: { stages: { stage: string; wallS: number; ca
   return <Chart option={option} height={Math.max(120, stages.length * 26)} ariaLabel="Время стадий прогона" />
 }
 
-function Transitions({ errors }: { errors: ErrorsOut }) {
-  const cams = [...new Set(errors.transitions.flatMap((t) => [t.from_camera, t.to_camera]))].sort()
-  if (cams.length === 0) return <div className="text-xs text-muted-foreground">Переходов между камерами в GT нет.</div>
-  const cell = (a: string, b: string) => errors.transitions.find((t) => t.from_camera === a && t.to_camera === b)
-  return (
-    <div className="overflow-x-auto">
-      <table className="text-xs tabular-nums">
-        <thead>
-          <tr>
-            <th className="px-2 py-1 text-left font-normal text-muted-foreground">из \ в</th>
-            {cams.map((c) => (
-              <th key={c} className="px-2 py-1 font-mono font-medium">
-                {c}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {cams.map((a) => (
-            <tr key={a}>
-              <th className="px-2 py-1 text-left font-mono font-medium">{a}</th>
-              {cams.map((b) => {
-                const t = cell(a, b)
-                const rate = t && t.total ? t.kept / t.total : null
-                return (
-                  <td key={b} className="p-0.5">
-                    <div
-                      className={cn('flex h-9 w-14 flex-col items-center justify-center rounded', rate === null && 'bg-muted/40 text-muted-foreground')}
-                      style={rate === null ? undefined : { background: `color-mix(in oklab, var(--chart-1) ${Math.round(15 + rate * 70)}%, transparent)`, color: rate > 0.55 ? '#fff' : undefined }}
-                      title={t ? `${a}→${b}: сохранено ${t.kept} из ${t.total}` : undefined}
-                    >
-                      {t ? (
-                        <>
-                          <span className="font-semibold">{Math.round((rate ?? 0) * 100)}%</span>
-                          <span className="text-[10px] opacity-80">
-                            {t.kept}/{t.total}
-                          </span>
-                        </>
-                      ) : (
-                        '—'
-                      )}
-                    </div>
-                  </td>
-                )
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
-}
-
 function Metrics({ run }: { run: RunOut }) {
   const metrics = useRunMetrics(run.id)
   const errors = useRunErrors(run.id)
@@ -254,7 +201,7 @@ function Metrics({ run }: { run: RunOut }) {
                       </Button>
                     </div>
                     <QueryView query={errors} loading={<LoadingBlock rows={3} />}>
-                      {(e) => <Transitions errors={e} />}
+                      {(e) => <TransitionMatrix transitions={e.transitions} />}
                     </QueryView>
                   </CardContent>
                 </Card>

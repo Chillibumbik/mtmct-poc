@@ -1,0 +1,21 @@
+# `make up` -> http://localhost:8080 . Host dirs are bind-mounted; fetch models on the host with `make setup`
+# (the OSNet export needs torch, which is deliberately not in the image).
+x-mtmct: &mtmct
+  image: mtmct:latest
+  volumes:
+    - ./data:/app/data
+    - ./cache:/app/cache
+    - ./models:/app/models
+    - ./outputs:/app/outputs
+    - ./db:/app/db
+  restart: unless-stopped
+
+services:
+  api:
+    <<: *mtmct
+    build: .
+    ports:
+      - "127.0.0.1:8080:8000"
+  worker:
+    <<: *mtmct
+    command: ["mtmct", "worker"]

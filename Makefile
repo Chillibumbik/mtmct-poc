@@ -30,12 +30,13 @@ lint:
 type:
 	$(UV) mypy src/mtmct/io src/mtmct/config.py src/mtmct/registry.py src/mtmct/associate src/mtmct/eval src/mtmct/track src/mtmct/refine src/mtmct/api src/mtmct/worker src/mtmct/db.py src/mtmct/pipeline src/mtmct/runtime
 test:
-	$(UV) pytest -q -m "not data and not slow"
+	$(UV) pytest -q -m "not data and not slow and not e2e"
 check: lint type test
 	@if [ -f web/package.json ]; then cd web && pnpm typecheck && pnpm test && pnpm lint; fi
 
-e2e:              ## smoke end-to-end on epfl_terrace (needs data + models)
+e2e:              ## smoke end-to-end on epfl_terrace (needs data + models): pytest, then Playwright
 	$(UV) pytest -q -m "e2e"
+	cd web && pnpm e2e
 
 openapi:
 	$(UV) python -c "import json; from mtmct.api.app import app; print(json.dumps(app.openapi(), indent=1))" > web/openapi.json
