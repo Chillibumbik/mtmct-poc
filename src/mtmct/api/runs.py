@@ -12,7 +12,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 from sqlmodel import Session, col, delete, select
 
 from mtmct.api.common import SessionDep, get_run, key_metrics_by_run, load_seq, run_dir, run_out, runs_out
@@ -40,8 +40,6 @@ def _build_run(
     seq = load_seq(dataset, sequence)
     if split not in seq.meta.splits:
         raise HTTPException(422, f"unknown split {split!r}; available: {list(seq.meta.splits)}")
-    if profile is None and dataset == "custom" and seq.overlap != "mixed":
-        profile = seq.overlap
     try:
         cfg = load_config(dataset, profile, overrides)
     except (ValidationError, AttributeError, TypeError, KeyError) as e:
@@ -59,8 +57,8 @@ def _build_run(
     )
 
 
-def _enqueue_run(session: Session, run: Run, kind: str = "run") -> Job:
-    job = Job(kind=kind, title=f"Прогон #{run.id}: {run.name}", run_id=run.id, payload={"run_id": run.id})
+def _enqueue_run(session: Session, run: Run) -> Job:
+    job = Job(kind="run", title=f"Прогон #{run.id}: {run.name}", run_id=run.id, payload={"run_id": run.id})
     session.add(job)
     session.flush()
     run.job_id = job.id
@@ -78,7 +76,6 @@ def create_run(body: RunCreate, session: SessionDep) -> RunOut:
         body.profile,
         body.overrides,
         body.name,
-        body.parent_sweep_id,
     )
     session.add(run)
     session.flush()
@@ -193,27 +190,6 @@ def run_metrics(run_id: int, session: SessionDep) -> RunMetrics:
     return RunMetrics(
         metrics=read_json_result(run_id, "metrics.json"), runtime=read_json_result(run_id, "runtime.json", False)
     )
-
-
-class EvalRequest(BaseModel):
-    overrides: dict[str, Any] = {}
-
-
-@router.post("/runs/{run_id}/eval", response_model=RunOut)
-def reevaluate_run(run_id: int, body: EvalRequest, session: SessionDep) -> RunOut:
-    """Re-run association + evaluation of a finished run (heavy stages come from the cache)."""
-    run = get_run(session, run_id)
-    if run.status in ("queued", "running"):
-        raise HTTPException(409, "run is still in the queue")
-    fresh = _build_run(
-        run.dataset, run.sequence, run.split, run.mode, run.profile, {**run.overrides, **body.overrides}, run.name
-    )
-    run.overrides, run.config, run.profile = fresh.overrides, fresh.config, fresh.profile
-    run.status, run.error, run.finished_at = "queued", None, None
-    _enqueue_run(session, run, kind="eval_only")
-    session.commit()
-    session.refresh(run)
-    return run_out(run, key_metrics_by_run(session, [run_id])[run_id], detail=True)
 
 
 def _round(x: float) -> float:

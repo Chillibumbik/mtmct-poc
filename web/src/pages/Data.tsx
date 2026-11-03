@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress'
 import { PageHeader } from '@/components/app/PageHeader'
 import { EmptyState, LoadingBlock, QueryView } from '@/components/app/States'
 import { OverlapBadge, SplitBadge, StatusBadge } from '@/components/app/StatusBadge'
-import { STAGE_LABELS, formatEta } from '@/lib/format'
+import { STAGE_LABELS } from '@/lib/format'
 import { formatSeconds } from '@/lib/metrics'
 import { UploadDialog } from './UploadDialog'
 
@@ -24,7 +24,7 @@ function JobProgress({ jobId }: { jobId: number }) {
       <div className="flex items-center justify-between text-xs">
         <span className="font-medium">{p.stage ? (STAGE_LABELS[p.stage] ?? p.stage) : 'Ожидание воркера…'}</span>
         <span className="tabular-nums text-muted-foreground">
-          {Math.round(p.progress * 100)}% · ETA {formatEta(p.etaS)}
+          {Math.round(p.progress * 100)}%
         </span>
       </div>
       <Progress value={p.progress * 100} className="h-1.5" />
@@ -148,7 +148,7 @@ function DatasetCard({ ds }: { ds: DatasetOut }) {
           {canFetch && (
             <Button size="sm" onClick={onFetch} disabled={fetch.isPending}>
               {ds.status === 'error' ? <RotateCw /> : ds.requires_auth ? <Lock /> : <Download />}
-              {ds.status === 'error' ? 'Повторить' : ds.status === 'downloaded' ? 'Подготовить' : 'Скачать и подготовить'}
+              {ds.status === 'error' ? 'Повторить' : 'Скачать и подготовить'}
             </Button>
           )}
           {ds.source_url && (

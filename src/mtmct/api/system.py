@@ -73,7 +73,6 @@ def system() -> SystemOut:
             kind="model" if c.category in ("detector", "reid") else "library",
             name=f"{c.category}/{c.name}",
             licence=c.licence,
-            note="опциональный компонент" if c.optional else "",
         )
         for items in registry.catalog().values()
         for c in items

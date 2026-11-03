@@ -175,7 +175,7 @@ function JobDetail({ jobId }: { jobId: number }) {
           <div className="flex justify-between text-xs">
             <span>{live.stage || j.stage ? (STAGE_LABELS[live.stage ?? j.stage ?? ''] ?? live.stage ?? j.stage) : '—'}</span>
             <span className="tabular-nums text-muted-foreground">
-              {Math.round(progress * 100)}%{!isTerminal(status) && ` · ETA ${formatEta(live.etaS ?? j.eta_s)}`}
+              {Math.round(progress * 100)}%{!isTerminal(status) && ` · ETA ${formatEta(j.eta_s)}`}
             </span>
           </div>
           <Progress value={progress * 100} className="h-2" />

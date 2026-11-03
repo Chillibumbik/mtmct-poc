@@ -9,7 +9,7 @@ from conftest import write_video
 
 from mtmct.data import aic24
 from mtmct.data.base import load_adapters, load_sequence
-from mtmct.data.common import apply_homography
+from mtmct.geometry.homography import apply_h
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "data" / "aic24"
 
@@ -23,7 +23,7 @@ def test_aic24_gt_parse_and_homography():
     # the stored homography is ground → image; the inverse puts the foot point near the GT's own ground position
     H = aic24.read_homography(FIXTURES / "calibration_0361.json")
     foot = np.array([[918 + 78 / 2, 414 + 216]])
-    assert np.abs(apply_homography(H, foot)[0] - [-6.35622, -6.68688]).max() < 0.5
+    assert np.abs(apply_h(H, foot)[0] - [-6.35622, -6.68688]).max() < 0.5
 
 
 def test_aic24_adapter_registered_with_two_sequences():

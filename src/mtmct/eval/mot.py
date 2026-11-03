@@ -78,9 +78,9 @@ def _ts(df: pd.DataFrame, seq: SequenceInfo) -> np.ndarray:
 
 
 def matches_table(
-    gt: pd.DataFrame, pred: pd.DataFrame, g: np.ndarray, p: np.ndarray, seq: SequenceInfo | None
+    gt: pd.DataFrame, pred: pd.DataFrame, g: np.ndarray, p: np.ndarray, seq: SequenceInfo
 ) -> pd.DataFrame:
-    """Matched positional rows → the `match_boxes` table."""
+    """Matched positional rows → one row per matched GT box (`ts` on the common clock)."""
     gm = gt.iloc[g]
     out = pd.DataFrame(
         {
@@ -93,24 +93,8 @@ def matches_table(
             "frame_id": gm["frame_id"].to_numpy(np.int64),
         }
     )
-    out["ts"] = _ts(out, seq) if seq is not None else out["frame_id"].to_numpy(float)
+    out["ts"] = _ts(out, seq)
     return out
-
-
-def match_boxes(
-    gt: pd.DataFrame, pred: pd.DataFrame, iou: float = 0.5, seq: SequenceInfo | None = None
-) -> pd.DataFrame:
-    """Hungarian matching per camera+frame on IoU ≥ `iou` → one row per matched GT box.
-
-    `ts` is the common-clock time if `seq` is given, else `frame_id`.
-    """
-    cams = pd.concat([gt["camera_id"], pred["camera_id"]]).unique()
-    frames = {
-        c: np.union1d(gt.loc[gt["camera_id"] == c, "frame_id"], pred.loc[pred["camera_id"] == c, "frame_id"])
-        for c in cams
-    }
-    g, p = step_matches(frame_steps(gt, pred, frames), iou)
-    return matches_table(gt, pred, g, p, seq)
 
 
 def _remap(ids: np.ndarray, steps_rows: list[np.ndarray]) -> tuple[list[np.ndarray], int]:

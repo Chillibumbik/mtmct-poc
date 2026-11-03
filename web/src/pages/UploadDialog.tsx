@@ -153,7 +153,7 @@ export function UploadDialog({ open, onOpenChange }: { open: boolean; onOpenChan
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <OptionalFile id="calib" label="Калибровка (опц.)" hint="JSON: гомографии image→world по камерам" accept=".json,application/json" file={calibration} onChange={setCalibration} />
-            <OptionalFile id="gt" label="Разметка GT (опц.)" hint="MOT txt или CSV с camera_id" accept=".txt,.csv" file={gt} onChange={setGt} />
+            <OptionalFile id="gt" label="Разметка GT (опц.)" hint="CSV camera_id,frame_id,person_id,x,y,w,h; camera_id = c0, c1… в порядке видео, frame_id с 0" accept=".csv" file={gt} onChange={setGt} />
           </div>
           {upload.isPending && (
             <div className="space-y-1">

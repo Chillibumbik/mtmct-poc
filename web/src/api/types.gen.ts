@@ -177,26 +177,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/runs/{run_id}/eval": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Reevaluate Run
-         * @description Re-run association + evaluation of a finished run (heavy stages come from the cache).
-         */
-        post: operations["reevaluate_run_api_runs__run_id__eval_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/compare": {
         parameters: {
             query?: never;
@@ -240,7 +220,7 @@ export interface paths {
         };
         /**
          * Tracks
-         * @description Boxes of one camera in [t0, t1) on the common clock; at most 300 frames per call (page by t0).
+         * @description Boxes of one camera in [t0, t1) on the common clock; at most 30 s per call (page by t0).
          */
         get: operations["tracks_api_runs__run_id__tracks_get"];
         put?: never;
@@ -522,8 +502,6 @@ export interface components {
             };
             /** Licence */
             licence: string;
-            /** Optional */
-            optional: boolean;
             /** Description */
             description: string;
         };
@@ -556,7 +534,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "absent" | "downloading" | "downloaded" | "preparing" | "ready" | "error";
+            status: "absent" | "downloading" | "preparing" | "ready" | "error";
             /**
              * Status Message
              * @default
@@ -599,16 +577,6 @@ export interface components {
             /** Transitions */
             transitions: components["schemas"]["TransitionCell"][];
         };
-        /** EvalRequest */
-        EvalRequest: {
-            /**
-             * Overrides
-             * @default {}
-             */
-            overrides: {
-                [key: string]: unknown;
-            };
-        };
         /** FrameBoxes */
         FrameBoxes: {
             /** Frame Id */
@@ -633,7 +601,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "dataset_fetch" | "dataset_prepare" | "run" | "sweep" | "eval_only";
+            kind: "dataset_fetch" | "dataset_prepare" | "run" | "sweep";
             /**
              * Status
              * @enum {string}
@@ -784,8 +752,6 @@ export interface components {
             };
             /** Name */
             name?: string | null;
-            /** Parent Sweep Id */
-            parent_sweep_id?: number | null;
         };
         /**
          * RunMetrics
@@ -1389,41 +1355,6 @@ export interface operations {
             };
         };
     };
-    reevaluate_run_api_runs__run_id__eval_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                run_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["EvalRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RunOut"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
     compare_api_compare_get: {
         parameters: {
             query: {
@@ -1492,7 +1423,7 @@ export interface operations {
             query: {
                 camera: string;
                 t0?: number;
-                /** @description default: t0 + 30 s */
+                /** @description default and maximum: t0 + 30 s */
                 t1?: number | null;
             };
             header?: never;
@@ -1873,7 +1804,6 @@ export type ComponentOut = components['schemas']['ComponentOut']
 export type DatasetOut = components['schemas']['DatasetOut']
 export type ErrorCase = components['schemas']['ErrorCase']
 export type ErrorsOut = components['schemas']['ErrorsOut']
-export type EvalRequest = components['schemas']['EvalRequest']
 export type FrameBoxes = components['schemas']['FrameBoxes']
 export type HTTPValidationError = components['schemas']['HTTPValidationError']
 export type JobOut = components['schemas']['JobOut']

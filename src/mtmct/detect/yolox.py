@@ -8,7 +8,7 @@ from typing import Literal
 
 import cv2
 import numpy as np
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from mtmct.models import load_runner
 from mtmct.registry import register
@@ -80,7 +80,7 @@ class _Yolox:
     class Params(BaseModel):
         conf: float = 0.3
         nms: float = 0.45
-        input_size: int = 640
+        input_size: int = Field(640, multiple_of=32)
         backend: Literal["openvino", "onnxruntime"] = "openvino"
         device: str = "CPU"
 
@@ -106,7 +106,7 @@ class YoloxS(_Yolox):
     MODEL = "yolox_s"
 
     class Params(_Yolox.Params):
-        input_size: int = 640
+        input_size: int = Field(640, multiple_of=32)
 
 
 @register("detector", "yolox_tiny")
@@ -116,4 +116,4 @@ class YoloxTiny(_Yolox):
     MODEL = "yolox_tiny"
 
     class Params(_Yolox.Params):
-        input_size: int = 416
+        input_size: int = Field(416, multiple_of=32)

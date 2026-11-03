@@ -2,10 +2,7 @@
 import type { SequenceOut } from '@/api/types.gen'
 import { getPath } from '@/lib/config'
 
-/**
- * Window length for `/runs/{id}/tracks`: the API returns ≤ 300 frames per call (pred ∪ GT frames),
- * 8 s keeps a 30 fps GT under that cap.
- */
+/** Window length for `/runs/{id}/tracks` (the API serves up to 30 s per call, whatever the fps). */
 export const WINDOW_S = 8
 
 /** Same rule as `mtmct.pipeline.run.time_range`: split range, shifted by `data.t_start`, cut to `data.max_seconds`. */

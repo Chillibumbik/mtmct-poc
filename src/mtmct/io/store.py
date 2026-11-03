@@ -54,7 +54,7 @@ class StageDir:
 
     @property
     def tmp(self) -> Path:
-        return self.root / f".{self.stage}-{self.hash}.tmp"
+        return self.root / f".{self.stage}-{self.hash}.{os.getpid()}.tmp"  # per process: no shared scratch dir
 
     @property
     def done(self) -> bool:

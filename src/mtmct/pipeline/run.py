@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import importlib.metadata
+import json
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -13,13 +14,15 @@ from typing import Any, Literal
 
 import numpy as np
 
+from mtmct import registry
 from mtmct.api.schemas import JobEventIn
-from mtmct.associate.run import associate, build_context, threshold_labels
+from mtmct.associate.run import associate, build_context, fuse, threshold_labels
 from mtmct.config import RunConfig, paths
 from mtmct.data.base import SequenceInfo
 from mtmct.eval.report import evaluate_run
 from mtmct.geometry.homography import to_world
-from mtmct.io import CACHE_VERSION, StageDir, Tracklets, read_table, stage_dir
+from mtmct.io import CACHE_VERSION, StageDir, Tracklets, config_hash, read_table, stage_dir
+from mtmct.models import MODELS
 from mtmct.pipeline import stages
 from mtmct.pipeline.events import MemoryLimitExceeded, Reporter, RunCancelled
 from mtmct.pipeline.outputs import write_json, write_run_header, write_tracks
@@ -65,6 +68,43 @@ def stage_key(cfg: RunConfig, stage: str, mode: Mode, t_range: tuple[float, floa
     return key | {"t_range": list(t_range), "mode": mode}
 
 
+def _stat(path: Path) -> list[int] | None:
+    return [path.stat().st_size, path.stat().st_mtime_ns] if path.exists() else None
+
+
+def _weights(category: str, name: str) -> list[list[int] | None]:
+    """(size, mtime_ns) of the model files of a component (empty for components without MODELS weights)."""
+    spec = MODELS.get(getattr(registry.get(category, name), "MODEL", ""))
+    if spec is None:
+        return []
+    main = paths().models / spec.filename
+    return [_stat(main), *(_stat(main.with_suffix(Path(url).suffix)) for url, _ in spec.companions)]
+
+
+def inputs_fingerprints(cfg: RunConfig, seq: SequenceInfo, plan: list[str]) -> dict[str, str]:
+    """Per stage: hash of inputs outside its cache key (prepared sequence, foot point, weights), chained upstream."""
+    foot = cfg.geometry.foot_point.model_dump()
+    own: dict[str, Any] = {
+        "detect": _weights("detector", cfg.detect.name),
+        "track": foot,
+        "oracle": [foot, _stat(seq.root / "gt.parquet")],
+        "reid": _weights("reid", cfg.reid.name),
+        "refine": None,
+    }
+    prev = config_hash([(seq.root / n).read_text() for n in ("cameras.json", "meta.json")])
+    out = {}
+    for s in plan:
+        prev = out[s] = config_hash([prev, own[s]])
+    return out
+
+
+def _fresh(sd: StageDir, fingerprint: str) -> bool:
+    """Committed and built from the same inputs; manifests from before fingerprints existed are trusted."""
+    if not sd.done:
+        return False
+    return json.loads((sd.path / "manifest.json").read_text()).get("inputs_fingerprint", fingerprint) == fingerprint
+
+
 def _versions() -> dict[str, str]:
     out = {}
     for pkg in VERSIONED_PACKAGES:
@@ -98,7 +138,7 @@ def _compute(
     elif name == "reid":
         stages.reid(seq, cfg, t_range, prev, out, rep, st)
     elif name == "refine":
-        stages.refine_stage(cfg, stages.processed_fps(cfg, seq), prev, out, st)
+        stages.refine_stage(cfg, stages.processed_fps(cfg, seq), frames, prev, out, st)
     else:
         raise KeyError(name)
 
@@ -115,10 +155,18 @@ def _run_heavy(
     plan = heavy_plan(cfg, mode)
     root = paths().cache / CACHE_VERSION / seq.dataset / seq.sequence
     dirs = {s: stage_dir(root, s, stage_key(cfg, s, mode, t_range)) for s in plan}
-    # Keys chain upstream configs, so the newest finished stage makes all earlier ones unnecessary
+    fps = inputs_fingerprints(cfg, seq, plan)
+    fresh = {s: _fresh(dirs[s], fps[s]) for s in plan}
+    for s in plan:
+        if dirs[s].done and not fresh[s]:
+            rep.emit(
+                f"{s}: cache {dirs[s].path.name} is stale (sequence, foot point or weights changed), recomputing",
+                level="warning",
+            )
+    # Keys and fingerprints chain upstream, so the newest fresh stage makes all earlier ones unnecessary
     # (embeddings always come from the reid dir, so it must exist when a later stage is reused).
-    last_done = max((i for i, s in enumerate(plan) if dirs[s].done), default=-1)
-    if not dirs["reid"].done:
+    last_done = max((i for i, s in enumerate(plan) if fresh[s]), default=-1)
+    if not fresh["reid"]:
         last_done = min(last_done, plan.index("reid") - 1)
     for i, name in enumerate(plan):
         if i <= last_done:
@@ -140,6 +188,7 @@ def _run_heavy(
                     "created_at": datetime.now(UTC).isoformat(),
                     "duration_s": time.perf_counter() - t0,
                     "inputs": {plan[i - 1]: dirs[plan[i - 1]].hash} if i else {},
+                    "inputs_fingerprint": fps[name],
                     "versions": _versions(),
                 }
             )
@@ -205,8 +254,9 @@ def _associate_and_eval(
         st.items = len(portraits)
     with rep.stage_ctx("associate", "tracklets") as st:
         ctx = build_context(seq, tracklets, portraits, portrait_emb, galleries, seq.topology(), rep.warn)
-        labels = associate(ctx, cfg.associate)
-        curve = threshold_labels(ctx, cfg.associate, cfg.eval.thresholds) if seq.has_gt else None
+        fused = fuse(ctx, cfg.associate)
+        labels = associate(ctx, cfg.associate, fused)
+        curve = threshold_labels(ctx, cfg.associate, cfg.eval.thresholds, fused) if seq.has_gt else None
         st.items = len(portraits)
     with rep.stage_ctx("postprocess", "boxes") as st:
         tracks = postprocess(tracklets, labels, cfg.postprocess)
@@ -222,8 +272,6 @@ def _associate_and_eval(
     gt = seq.gt()
     if gt is not None:
         with rep.stage_ctx("eval", "boxes") as st:
-            step = seq.meta.gt_frame_step
-            eval_frames = {cam: f[f % step == 0] for cam, f in frames.items()}
-            metrics |= evaluate_run(gt, tracks, seq, eval_frames, cfg.eval.iou, portraits, portrait_emb, curve)
+            metrics |= evaluate_run(gt, tracks, seq, frames, cfg.eval.iou, portraits, portrait_emb, curve)
             st.items = len(tracks)
     return metrics | {"warnings": rep.warnings}

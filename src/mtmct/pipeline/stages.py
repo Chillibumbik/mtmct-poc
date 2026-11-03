@@ -37,6 +37,7 @@ def processed_fps(cfg: RunConfig, seq: SequenceInfo) -> float:
 
 
 def _rows(cam: CameraInfo, frame_ids: np.ndarray, boxes: np.ndarray) -> pd.DataFrame:
+    """One camera's boxes `(n, ≥5)` = x, y, w, h, score → rows with camera_id, frame_id, ts."""
     df = pd.DataFrame(boxes[:, :5], columns=BOX_COLS)
     df.insert(0, "camera_id", cam.camera_id)
     df.insert(1, "frame_id", frame_ids.astype(np.int64))
@@ -59,16 +60,18 @@ def detect(
     detector = registry.create("detector", cfg.detect.name, cfg.detect.params)
     total, done, parts = max(sum(len(f) for f in frames.values()), 1), 0, []
     for cam in seq.cameras:
+        fids, boxes = [np.zeros(0, np.int64)], [np.zeros((0, 5))]
         for batch in itertools.batched(iter_frames(seq, cam, cfg.data.target_fps, t_range), DETECT_BATCH):
             t0 = time.perf_counter()
             dets = detector.detect([f.image for f in batch])
             st.add(len(batch), time.perf_counter() - t0)
             for f, d in zip(batch, dets, strict=True):
-                d = np.asarray(d, dtype=np.float64).reshape(-1, 5)
-                parts.append(_rows(cam, np.full(len(d), f.frame_id), d))
+                boxes.append(np.asarray(d, dtype=np.float64).reshape(-1, 5))
+                fids.append(np.full(len(boxes[-1]), f.frame_id))
             done += len(batch)
             rep.progress(min(done / total, 1.0))
             rep.check()
+        parts.append(_rows(cam, np.concatenate(fids), np.concatenate(boxes)))
     df = _valid_boxes(_concat(parts, list(Detections.to_schema().columns)))
     write_table(df, out / "detections.parquet", Detections)
 
@@ -112,9 +115,10 @@ def track(
     no_image = np.zeros((0, 0, 3), np.uint8)
     for ci, cam in enumerate(seq.cameras):
         tracker.reset()
+        fids, boxes, tids = [np.zeros(0, np.int64)], [np.zeros((0, 5))], [np.zeros(0, np.int64)]
         cam_dets = dets[dets["camera_id"] == cam.camera_id]
-        boxes = cam_dets[BOX_COLS].to_numpy(np.float32)
-        by_frame = {f: boxes[i] for f, i in cam_dets.groupby("frame_id").indices.items()}
+        det_boxes = cam_dets[BOX_COLS].to_numpy(np.float32)
+        by_frame = {f: det_boxes[i] for f, i in cam_dets.groupby("frame_id").indices.items()}
         source: Iterator[tuple[int, np.ndarray]] = (
             ((f.frame_id, f.image) for f in iter_frames(seq, cam, cfg.data.target_fps, t_range))
             if uses_frame
@@ -125,13 +129,16 @@ def track(
             out_boxes = tracker.update(by_frame.get(frame_id, np.zeros((0, 5), np.float32)), image)
             st.add(1, time.perf_counter() - t0)
             if len(out_boxes):
-                part = _rows(cam, np.full(len(out_boxes), frame_id), np.asarray(out_boxes, np.float64))
-                part.insert(3, "tracklet_id", ci * TRACKLET_ID_CAMERA_FACTOR + out_boxes[:, 5].astype(np.int64))
-                parts.append(part)
+                fids.append(np.full(len(out_boxes), frame_id))
+                boxes.append(np.asarray(out_boxes[:, :5], np.float64))
+                tids.append(ci * TRACKLET_ID_CAMERA_FACTOR + out_boxes[:, 5].astype(np.int64))
             done += 1
             if done % TRACK_CHECK_EVERY == 0:
                 rep.progress(done / total)
                 rep.check()
+        part = _rows(cam, np.concatenate(fids), np.concatenate(boxes))
+        part.insert(3, "tracklet_id", np.concatenate(tids))
+        parts.append(part)
     raw = _concat(parts, ["camera_id", "frame_id", "ts", "tracklet_id", *BOX_COLS])
     write_table(finish_tracklets(raw, seq, _foot(cfg)), out / "tracklets.parquet", Tracklets)
 
@@ -229,11 +236,11 @@ def embedding_index(trk: pd.DataFrame) -> pd.DataFrame:
     return df.sort_values("emb_idx").reset_index(drop=True)
 
 
-def refine_stage(cfg: RunConfig, fps: float, reid_dir: Path, out: Path, st: StageStats) -> None:
+def refine_stage(cfg: RunConfig, fps: float, frames: Frames, reid_dir: Path, out: Path, st: StageStats) -> None:
     trk = read_table(reid_dir / "tracklets.parquet", Tracklets)
     emb = np.load(reid_dir / "embeddings.npy").astype(np.float32)
     t0 = time.perf_counter()
-    refined = refine(trk, emb, cfg.refine, fps=fps)
+    refined = refine(trk, emb, cfg.refine, fps, frames)
     st.add(len(trk), time.perf_counter() - t0)
     write_table(refined, out / "tracklets.parquet", Tracklets)
     write_table(embedding_index(refined), out / "embeddings_index.parquet", EmbeddingIndex)

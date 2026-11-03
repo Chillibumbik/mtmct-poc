@@ -92,6 +92,9 @@ def test_postprocess_nothing_above_conf_returns_empty():
 
 def test_detector_registered_with_input_sizes():
     assert registry.get("detector", "yolox_s").Params().input_size == 640
+    for name in ("yolox_s", "yolox_tiny"):  # YOLOX strides need a multiple of 32
+        with pytest.raises(ValueError, match="multiple of 32"):
+            registry.get("detector", name).Params(input_size=600)
     assert registry.get("detector", "yolox_tiny").Params().input_size == 416
     assert registry.get("detector", "yolox_s").LICENCE == "Apache-2.0"
 

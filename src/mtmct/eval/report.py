@@ -40,7 +40,7 @@ def evaluate_run(
 ) -> dict[str, Any]:
     """Score GT (GroundTruth) vs prediction (GlobalTracks) on `eval_frames[camera_id]` only (both sides restricted).
 
-    Cross-camera metrics treat the cameras, in sequence order, as one concatenated sequence (`concat_cameras`).
+    Cross-camera metrics treat the cameras, in sequence order, as one concatenated sequence.
     `threshold_labels` = {solver threshold: Series tracklet_id → global_id} gives the P/R/IDF1 curve.
     """
     frames = {c.camera_id: np.asarray(eval_frames[c.camera_id]) for c in seq.cameras if c.camera_id in eval_frames}
@@ -57,10 +57,10 @@ def evaluate_run(
     g_rows = np.concatenate([s.gt for s in steps]) if steps else np.zeros(0, np.int64)
     p_rows = np.concatenate([s.pred for s in steps]) if steps else np.zeros(0, np.int64)
     identity = identity_metrics(matches, gt.iloc[g_rows], pred.iloc[p_rows])
+    labels = tracklet_labels(matches)
 
     reid: dict[str, Any] = {"rank1": None, "rank5": None, "mAP": None, "n_queries": 0}
     if portraits is not None and portrait_emb is not None:
-        labels = tracklet_labels(matches)
         keep = portraits["tracklet_id"].isin(labels.index).to_numpy()
         reid = reid_sanity(
             portrait_emb[keep],
@@ -71,10 +71,10 @@ def evaluate_run(
     curve = []
     if threshold_labels:
         counts = tracklet_counts(steps, gt_ids, pred["tracklet_id"].to_numpy(np.int64), iou)
-        match_k = np.searchsorted(counts.tracklets, matches["tracklet_id"].to_numpy(np.int64))
+        match_k = np.searchsorted(counts.tracklets, labels.index.to_numpy(np.int64))
         for thr in sorted(threshold_labels):
             lab = relabel(counts.tracklets, threshold_labels[thr])
-            pw = cluster_scores(matches["person_id"].to_numpy(), lab[match_k])
+            pw = cluster_scores(labels.to_numpy(), lab[match_k])  # tracklet level, as in `identity`
             curve.append(
                 {"threshold": thr}
                 | {k: pw[k] for k in ("pairwise_p", "pairwise_r", "pairwise_f1")}

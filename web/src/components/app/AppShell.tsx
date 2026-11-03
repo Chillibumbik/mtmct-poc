@@ -47,13 +47,7 @@ export function AppShell() {
           ))}
         </nav>
         <div className="flex items-center justify-between border-t px-3 py-2">
-          {import.meta.env.VITE_MOCK === '1' ? (
-            <Badge variant="outline" className="font-normal text-warn" title="Данные из MSW-моков, бэкенд не используется">
-              mock API
-            </Badge>
-          ) : (
-            <span className="text-xs text-muted-foreground">127.0.0.1:8000</span>
-          )}
+          <span className="text-xs text-muted-foreground">127.0.0.1:8000</span>
           <ThemeToggle />
         </div>
       </aside>

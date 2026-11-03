@@ -135,10 +135,11 @@ def test_time_cost_outside_window_cannot_link():
         _tracklet(2, "c1", 6.0, 5),  # Δt = 5 → inside
         _tracklet(3, "c1", 20.0, 5),  # Δt = 19 → outside
         _tracklet(4, "c0", 30.0, 5),  # c1 → c0 never observed → unseen penalty
-        _tracklet(5, "c1", 0.5, 5),  # co-visible with #1 in a non-overlapping layout
+        _tracklet(5, "c1", 0.5, 5),  # co-visible with #1
     ]
     seq = _seq(overlap="nonoverlap", homography=False)
-    cm = registry.create("cost", "time", {"hard": True, "unseen_penalty": 0.5})(_ctx(parts, seq=seq, topology=TOPO))
+    params = {"hard": True, "unseen_penalty": 0.5, "overlap": "cannot_link"}
+    cm = registry.create("cost", "time", params)(_ctx(parts, seq=seq, topology=TOPO))
     assert (cm.cannot_link == cm.cannot_link.T).all() and np.allclose(cm.dist, cm.dist.T, equal_nan=True)
     assert cm.dist[0, 1] == 0.0 and not cm.cannot_link[0, 1]
     assert cm.cannot_link[0, 2]
@@ -146,9 +147,15 @@ def test_time_cost_outside_window_cannot_link():
     assert cm.cannot_link[0, 4]
     assert np.isnan(cm.dist[0, 3]) and not cm.cannot_link[0, 3]  # same camera: not this cost's business
 
-    soft = registry.create("cost", "time", {"hard": False})(_ctx(parts, seq=seq, topology=TOPO))
+    soft = registry.create("cost", "time", {"hard": False, "overlap": "cannot_link"})(
+        _ctx(parts, seq=seq, topology=TOPO)
+    )
     assert soft.dist[0, 2] == 1.0 and not soft.cannot_link[0, 2]
-    assert soft.cannot_link[0, 4]  # co-visibility in a non-overlapping layout stays forbidden
+    assert soft.cannot_link[0, 4]  # co-visibility stays forbidden with overlap: cannot_link
+
+    default = registry.create("cost", "time")(_ctx(parts, seq=seq, topology=TOPO))
+    assert np.isnan(default.dist[0, 4]) and not default.cannot_link[0, 4]  # co-visible: no information
+    assert default.cannot_link[0, 2] and default.dist[0, 1] == 0.0
 
 
 def test_time_cost_missing_topology_warns():
@@ -174,6 +181,37 @@ def test_fit_topology_quantiles():
     lo, hi = topo["pairs"]["c0->c1"]
     exp_lo, exp_hi = np.quantile(gaps, [0.05, 0.95])
     assert lo == pytest.approx(exp_lo - 2.0, abs=0.15) and hi == pytest.approx(exp_hi + 2.0, abs=0.15)
+
+
+def _visits(pid: int, spans: list[tuple[str, float, float]]) -> list[dict]:
+    return [
+        {"camera_id": cam, "frame_id": round(t * FPS), "person_id": pid}
+        for cam, a, b in spans
+        for t in np.arange(a, b, 1 / FPS)
+    ]
+
+
+def test_fit_topology_simultaneous_views_then_hallway():
+    """Seen in c0 and c1 at once (interleaved observations), then walks to c2 along a hallway."""
+    seq = _seq(n_cams=3, homography=False)
+    gaps = np.linspace(8.0, 12.0, 21)
+    rows = []
+    for pid, gap in enumerate(gaps):
+        t0 = pid * 200.0
+        rows += _visits(pid, [("c0", t0, t0 + 30), ("c0", t0 + 31, t0 + 40), ("c1", t0 + 5, t0 + 35)])
+        rows += _visits(pid, [("c2", t0 + 40 + gap, t0 + 50 + gap)])
+    gt = pd.DataFrame(rows).assign(x=0.0, y=0.0, w=1.0, h=1.0, world_x=np.nan, world_y=np.nan)
+    topo = fit_topology(gt, seq, q=(0.0, 1.0), margin_s=2.0)
+    # c0 is left last (a 1 s gap does not end the visit); the overlapping c0/c1 views are not a transition
+    assert set(topo["pairs"]) == {"c0->c2"}
+    lo, hi = topo["pairs"]["c0->c2"]
+    assert lo == pytest.approx(gaps.min() - 2.0, abs=0.15) and hi == pytest.approx(gaps.max() + 2.0, abs=0.15)
+
+    parts = [_tracklet(1, "c0", 0.0, 400), _tracklet(2, "c1", 5.0, 300), _tracklet(3, "c2", 50.0, 100)]
+    cm = registry.create("cost", "time")(_ctx(parts, seq=_seq(n_cams=3, homography=False), topology=topo))
+    assert not cm.cannot_link.any()
+    assert np.isnan(cm.dist[0, 1])  # simultaneous views carry no transition-time information
+    assert cm.dist[0, 2] == 0.0  # Δt = 50 − 39.9 ≈ 10 s, inside the window
 
 
 # ---------- combine ----------

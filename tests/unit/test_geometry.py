@@ -65,6 +65,14 @@ def test_to_world_no_smoothing_is_exact():
     np.testing.assert_allclose(out[["world_x", "world_y"]].to_numpy(), apply_h(H0, foot))
 
 
+def test_to_world_cuts_points_above_horizon_and_out_of_range():
+    h = np.array([[0.01, 0, 0], [0, 0.01, 0], [0, -0.01, 1.0]])  # horizon at image row y = 100
+    foot = np.array([[320.0, 50.0], [320.0, 300.0], [320.0, 101.0]])  # above, below, just below (≈ 300 m away)
+    out = to_world(_rows(1, "c0", foot), _seq(h.tolist()), smooth_window=1)
+    assert out["world_x"].isna().tolist() == [True, False, True]
+    np.testing.assert_allclose(out[["world_x", "world_y"]].iloc[1], [-1.6, -1.5])
+
+
 def test_foot_point_bottom_center_registered():
     fp = registry.create("foot_point", "bottom_center")
     out = fp.foot(np.array([[10.0, 20.0, 4.0, 30.0]]), None)

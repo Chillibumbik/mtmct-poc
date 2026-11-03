@@ -14,8 +14,11 @@ GT_COLUMNS = ["camera_id", "frame_id", "person_id", "x", "y", "w", "h"]
 
 
 def read_custom_gt(path: Path) -> pd.DataFrame:
-    """MOT-style CSV `camera_id,frame_id,person_id,x,y,w,h` (header optional); frame_id is 0-based."""
-    df = pd.read_csv(path, header=None, names=GT_COLUMNS, dtype={"camera_id": str})
+    """CSV `camera_id,frame_id,person_id,x,y,w,h` (header optional); frame_id is 0-based."""
+    df = pd.read_csv(path, header=None, dtype=str)
+    if df.shape[1] != len(GT_COLUMNS):
+        raise ValueError(f"expected {len(GT_COLUMNS)} columns, got {df.shape[1]}")
+    df.columns = GT_COLUMNS
     if df.iloc[0, 1] == "frame_id":
         df = df.iloc[1:]
     return df.astype(

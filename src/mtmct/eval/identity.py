@@ -1,4 +1,5 @@
-"""Identity-level (clustering) metrics over matched boxes: pred cluster = global_id, true class = person_id."""
+"""Identity-level metrics. Clustering scores (spec §9.3) are over predicted tracklets: item = tracklet with a matched
+box, true class = majority GT person of its matched boxes, cluster = global_id. Merge/split/handover use boxes."""
 
 from __future__ import annotations
 
@@ -6,6 +7,8 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+
+from mtmct.eval.reid_sanity import tracklet_labels
 
 MIN_BOXES, MIN_FRAC = 5, 0.1  # a person/id "owns" part of a cluster with ≥ max(5, 10 %) of its boxes
 
@@ -114,9 +117,15 @@ def _handover(m: pd.DataFrame) -> tuple[list[dict[str, Any]], float | None]:
     return rows, float(tr["kept"].mean())
 
 
+def tracklet_cluster_scores(matches: pd.DataFrame) -> dict[str, float]:
+    person = tracklet_labels(matches)
+    gid = matches.groupby("tracklet_id")["global_id"].first()
+    return cluster_scores(person.to_numpy(), gid.loc[person.index].to_numpy())
+
+
 def identity_metrics(matches: pd.DataFrame, gt: pd.DataFrame, pred: pd.DataFrame) -> dict[str, Any]:
-    """Clustering metrics over matched boxes (`match_boxes` table); `gt`/`pred` = rows inside the scored frames."""
-    out: dict[str, Any] = cluster_scores(matches["person_id"].to_numpy(), matches["global_id"].to_numpy())
+    """Identity metrics from matched boxes (`mot.matches_table`); `gt`/`pred` = rows inside the scored frames."""
+    out: dict[str, Any] = tracklet_cluster_scores(matches)
     merges, splits, cases = _errors(matches)
     transitions, rate = _handover(matches)
     return out | {

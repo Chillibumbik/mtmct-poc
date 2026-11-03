@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Literal
+
 import numpy as np
 from pydantic import BaseModel, Field
 
@@ -18,6 +20,11 @@ class TransitionTime:
     class Params(BaseModel):
         hard: bool = Field(True, description="Outside the window: cannot-link (true) or distance 1 (false)")
         unseen_penalty: float = Field(0.5, ge=0, le=1, description="Distance for camera pairs never seen in topology")
+        overlap: Literal["ignore", "cannot_link"] = Field(
+            "ignore",
+            description="Pairs visible at the same time in two cameras: no information (ignore) or cannot-link "
+            "(only for layouts where cameras never overlap)",
+        )
 
     def __init__(self, params: Params) -> None:
         self.params = params
@@ -50,8 +57,10 @@ class TransitionTime:
 
         dist = np.where(seen, np.where(inside, 0.0, 1.0), self.params.unseen_penalty)
         cl = seen & ~inside & self.params.hard
-        if ctx.seq.overlap == "nonoverlap":  # co-visible in non-overlapping cameras, unless topology says it happens
-            covisible = (dt <= 0) & ~inside
+        covisible = (dt <= 0) & ~inside
+        if self.params.overlap == "cannot_link":
             dist, cl = np.where(covisible, 1.0, dist), cl | covisible
+        else:  # simultaneous views say nothing about the transition time
+            dist, cl = np.where(covisible, np.nan, dist), cl & ~covisible
         dist = np.where(other_cam, dist, np.nan)
         return CostMatrix(dist, cl & other_cam)

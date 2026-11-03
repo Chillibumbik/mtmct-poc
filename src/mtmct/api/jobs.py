@@ -9,6 +9,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
+from sqlalchemy import update
 from sqlmodel import Session, col, select
 from sse_starlette.sse import EventSourceResponse
 
@@ -49,16 +50,24 @@ def get_job(job_id: int, session: SessionDep) -> JobOut:
 
 def _cancel(session: Session, job: Job) -> None:
     """Queued jobs are cancelled at once; running ones get a flag the worker polls. Sweeps cascade to children."""
-    if job.status == "queued":
-        job.status, job.finished_at = "cancelled", utcnow()
+    cancelled = False
+    if job.status == "queued":  # conditional: the worker may have claimed the job since we read it
+        won = session.execute(
+            update(Job)
+            .where(col(Job.id) == job.id, col(Job.status) == "queued")
+            .values(status="cancelled", finished_at=utcnow())
+        )
+        session.refresh(job)
+        cancelled = won.rowcount == 1  # type: ignore[attr-defined]
+    if job.status == "running":
+        job.cancel_requested = True
+    if cancelled:
         if job.run_id and (run := session.get(Run, job.run_id)):
             run.status, run.finished_at = "cancelled", job.finished_at
             session.add(run)
         for ds in session.exec(select(Dataset).where(Dataset.job_id == job.id)):
             ds.status, ds.status_message = "absent", "отменено"
             session.add(ds)
-    elif job.status == "running":
-        job.cancel_requested = True
     session.add(job)
     if job.kind == "sweep":
         for run in session.exec(select(Run).where(Run.sweep_id == job.payload.get("sweep_id"))):

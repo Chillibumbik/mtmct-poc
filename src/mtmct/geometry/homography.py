@@ -5,7 +5,9 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from mtmct.data.base import SequenceInfo
+from mtmct.data.base import CameraInfo, SequenceInfo
+
+MAX_RANGE_M = 100.0  # scene extent: farther ground points are numerically meaningless (foot at the horizon)
 
 
 def apply_h(H: np.ndarray, pts: np.ndarray) -> np.ndarray:
@@ -17,16 +19,30 @@ def apply_h(H: np.ndarray, pts: np.ndarray) -> np.ndarray:
     return hom[:, :2] / w[:, None]
 
 
+def to_ground(cam: CameraInfo, foot: np.ndarray) -> np.ndarray:
+    """Image foot points → ground plane (m) through the camera's homography (which must exist).
+
+    Points above the horizon (the ray misses the ground) or farther than MAX_RANGE_M become NaN.
+    """
+    H = cam.H()
+    assert H is not None, cam.camera_id
+    p = np.asarray(foot, dtype=np.float64).reshape(-1, 2)
+    world = apply_h(H, p)
+    w = np.column_stack([p, np.ones(len(p))]) @ H[2]
+    below_horizon = w * (H @ [cam.width / 2, cam.height, 1.0])[2] > 0  # same side as the image bottom
+    world[~below_horizon | (np.abs(world) > MAX_RANGE_M).any(axis=1)] = np.nan
+    return world
+
+
 def to_world(tracklets: pd.DataFrame, seq: SequenceInfo, smooth_window: int = 5) -> pd.DataFrame:
     """Fill world_x/world_y from foot points (NaN for cameras without a homography), smoothed per tracklet in time."""
     out = tracklets.copy()
     world = np.full((len(out), 2), np.nan)
     cams = out["camera_id"].to_numpy()
     for cam in seq.cameras:
-        H = cam.H()
         m = cams == cam.camera_id
-        if H is not None and m.any():
-            world[m] = apply_h(H, out.loc[m, ["foot_x", "foot_y"]].to_numpy())
+        if cam.H() is not None and m.any():
+            world[m] = to_ground(cam, out.loc[m, ["foot_x", "foot_y"]].to_numpy())
     if smooth_window > 1 and len(out):
         order = np.lexsort((out["ts"].to_numpy(), out["tracklet_id"].to_numpy()))
         sorted_world = pd.DataFrame(world[order], columns=["x", "y"])

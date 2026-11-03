@@ -10,15 +10,26 @@ from mtmct.config import RefineCfg
 _TAIL_ROWS = 5  # rows used to estimate the end velocity of a tracklet
 
 
-def refine(tracklets: pd.DataFrame, emb: np.ndarray, cfg: RefineCfg, fps: float) -> pd.DataFrame:
-    """Tracklets in, Tracklets out; `emb[emb_idx]` is a box embedding, `fps` the processed frame rate."""
+def refine(
+    tracklets: pd.DataFrame, emb: np.ndarray, cfg: RefineCfg, fps: float, frames: dict[str, np.ndarray]
+) -> pd.DataFrame:
+    """Tracklets in, Tracklets out; `emb[emb_idx]` is a box embedding, `fps` the processed frame rate,
+    `frames[camera_id]` the sorted processed frame ids (gaps are counted and filled on this grid only)."""
     if not cfg.enabled or tracklets.empty:
         return tracklets
     df = tracklets.sort_values(["camera_id", "tracklet_id", "frame_id"]).reset_index(drop=True)
+    cam_ids, frame_ids = df["camera_id"].to_numpy(), df["frame_id"].to_numpy()
+    grid: list[np.ndarray] = []  # processed frames of all cameras, one after another
+    pos = np.zeros(len(df), np.int64)  # index of each row's frame in `grid`
+    for cam in np.unique(cam_ids):
+        m = cam_ids == cam
+        pos[m] = sum(map(len, grid)) + np.searchsorted(frames[cam], frame_ids[m])
+        grid.append(frames[cam])
+    df["pos"] = pos
     df = _split(df, emb, cfg)
     df = _stitch(df, emb, cfg, fps)
     df = _drop(df, cfg)
-    return _interpolate(df, cfg)
+    return _interpolate(df, cfg, np.concatenate(grid)).drop(columns="pos")
 
 
 def _cuts(e: np.ndarray, window: int, thr: float) -> list[int]:
@@ -54,11 +65,6 @@ def _split(df: pd.DataFrame, emb: np.ndarray, cfg: RefineCfg) -> pd.DataFrame:
     return df.assign(tracklet_id=new_id)
 
 
-def _frame_step(frame_id: pd.Series) -> int:
-    d = np.diff(np.unique(frame_id.to_numpy()))
-    return max(int(np.median(d)), 1) if len(d) else 1
-
-
 def _stitch(df: pd.DataFrame, emb: np.ndarray, cfg: RefineCfg, fps: float) -> pd.DataFrame:
     mapping: dict[int, int] = {}
     for _, cam in df.groupby("camera_id", sort=False):
@@ -68,11 +74,10 @@ def _stitch(df: pd.DataFrame, emb: np.ndarray, cfg: RefineCfg, fps: float) -> pd
 
 def _stitch_camera(cam: pd.DataFrame, emb: np.ndarray, cfg: RefineCfg, fps: float) -> dict[int, int]:
     """Greedy chaining of A-end → B-start by best score; returns tracklet_id → id of the first tracklet of its chain."""
-    step = _frame_step(cam["frame_id"])
     ids: list[int] = []
     start, end, head, tail, vel, esum, cnt = [], [], [], [], [], [], []
     for _, g in cam.groupby("tracklet_id", sort=False):
-        f = g["frame_id"].to_numpy()
+        f = g["pos"].to_numpy()
         foot = g[["foot_x", "foot_y"]].to_numpy()
         k = max(len(g) - _TAIL_ROWS, 0)
         e = g["emb_idx"].to_numpy()
@@ -82,7 +87,7 @@ def _stitch_camera(cam: pd.DataFrame, emb: np.ndarray, cfg: RefineCfg, fps: floa
         end.append(f[-1])
         head.append(foot[0])
         tail.append(foot[-1])
-        vel.append((foot[-1] - foot[k]) / ((f[-1] - f[k]) / step) if f[-1] > f[k] else np.zeros(2))
+        vel.append((foot[-1] - foot[k]) / (f[-1] - f[k]) if f[-1] > f[k] else np.zeros(2))
         esum.append(e.sum(0) if len(e) else np.zeros(emb.shape[1]))
         cnt.append(len(e))
     n = len(ids)
@@ -95,7 +100,7 @@ def _stitch_camera(cam: pd.DataFrame, emb: np.ndarray, cfg: RefineCfg, fps: floa
 
     def scores(a: np.ndarray, b: np.ndarray) -> np.ndarray:
         """Score of chaining every chain in `a` (earlier) into every chain in `b` (later); -inf if not allowed."""
-        gap = (start_a[b][None, :] - end_a[a][:, None]) / step  # processed frames
+        gap = start_a[b][None, :] - end_a[a][:, None]  # processed frames
         pred = tail_a[a][:, None, :] + vel_a[a][:, None, :] * gap[..., None]
         dist = np.linalg.norm(pred - head_a[b][None, :, :], axis=2)
         ma, mb = esum_a[a], esum_a[b]
@@ -127,13 +132,12 @@ def _drop(df: pd.DataFrame, cfg: RefineCfg) -> pd.DataFrame:
     return df[keep].reset_index(drop=True)
 
 
-def _interpolate(df: pd.DataFrame, cfg: RefineCfg) -> pd.DataFrame:
-    """Fill gaps of 1..interp_gap missing frames inside a tracklet; the frame period is inferred per camera."""
+def _interpolate(df: pd.DataFrame, cfg: RefineCfg, grid: np.ndarray) -> pd.DataFrame:
+    """Fill gaps of 1..interp_gap missing processed frames inside a tracklet (only frames of `grid`)."""
     df = df.sort_values(["camera_id", "tracklet_id", "frame_id"]).reset_index(drop=True)
-    step = df["camera_id"].map(df.groupby("camera_id")["frame_id"].agg(_frame_step)).to_numpy()
     same = (df["tracklet_id"] == df["tracklet_id"].shift()).to_numpy()
     n_missing = np.zeros(len(df), dtype=int)
-    n_missing[1:] = np.rint(np.diff(df["frame_id"].to_numpy()) / step[1:]).astype(int) - 1
+    n_missing[1:] = np.diff(df["pos"].to_numpy()) - 1
     n_missing = np.where(same & (n_missing >= 1) & (n_missing <= cfg.interp_gap), n_missing, 0)
     if not n_missing.any():
         return df
@@ -141,11 +145,14 @@ def _interpolate(df: pd.DataFrame, cfg: RefineCfg) -> pd.DataFrame:
     b = np.repeat(np.flatnonzero(n_missing), n_missing[n_missing > 0])  # row after the gap, once per new frame
     k = np.concatenate([np.arange(1, m + 1) for m in n_missing[n_missing > 0]])
     a = b - 1
-    t = (k / (n_missing[b] + 1))[:, None]
+    pos = df["pos"].to_numpy()[a] + k
+    f, fa, fb = grid[pos], df["frame_id"].to_numpy()[a], df["frame_id"].to_numpy()[b]
+    t = ((f - fa) / (fb - fa))[:, None]  # ts is affine in frame_id, so it lands exactly on cam.ts(f)
     num = ["ts", "x", "y", "w", "h", "foot_x", "foot_y", "world_x", "world_y"]
     new = df.iloc[a].reset_index(drop=True)
     new[num] = df[num].to_numpy()[a] * (1 - t) + df[num].to_numpy()[b] * t
-    new["frame_id"] = df["frame_id"].to_numpy()[a] + k * step[a]
+    new["frame_id"] = f
+    new["pos"] = pos
     new["score"] = np.minimum(df["score"].to_numpy()[a], df["score"].to_numpy()[b])
     new["quality"] = 0.0
     new["emb_idx"] = -1

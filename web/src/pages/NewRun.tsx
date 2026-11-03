@@ -122,7 +122,6 @@ function StageEditor({ ed, stage, components, disabled }: { ed: Editor; stage: (
             {components.map((c) => (
               <SelectItem key={c.name} value={c.name} className="font-mono text-xs">
                 {c.name}
-                {c.optional && <span className="text-muted-foreground"> · опц.</span>}
               </SelectItem>
             ))}
           </SelectContent>

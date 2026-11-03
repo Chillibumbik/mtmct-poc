@@ -31,7 +31,10 @@ def build_context(
     )  # fmt: skip
 
 
-def _fused(ctx: AssocContext, cfg: AssociateCfg) -> tuple[np.ndarray, np.ndarray]:
+Fused = tuple[np.ndarray, np.ndarray]  # (distance, cannot_link)
+
+
+def fuse(ctx: AssocContext, cfg: AssociateCfg) -> Fused:
     parts: list[tuple[CostMatrix, float]] = []
     for name, spec in cfg.costs.items():
         if spec.weight <= 0:  # disabled cost: its cannot-links must not apply either (ablation "off")
@@ -58,13 +61,15 @@ def _solve(ctx: AssocContext, name: str, params: dict[str, Any], dist: np.ndarra
     return pd.Series(np.asarray(labels, dtype=np.int64), index=index, name="global_id")
 
 
-def associate(ctx: AssocContext, cfg: AssociateCfg) -> pd.Series:
-    """tracklet_id → global_id (0..k-1)."""
-    dist, cl = _fused(ctx, cfg)
+def associate(ctx: AssocContext, cfg: AssociateCfg, fused: Fused | None = None) -> pd.Series:
+    """tracklet_id → global_id (0..k-1); pass `fused = fuse(ctx, cfg)` to reuse the cost matrices."""
+    dist, cl = fused or fuse(ctx, cfg)
     return _solve(ctx, cfg.solver.name, cfg.solver.params, dist, cl)
 
 
-def threshold_labels(ctx: AssocContext, cfg: AssociateCfg, thresholds: list[float]) -> dict[float, pd.Series]:
+def threshold_labels(
+    ctx: AssocContext, cfg: AssociateCfg, thresholds: list[float], fused: Fused | None = None
+) -> dict[float, pd.Series]:
     """Labels per solver threshold; the cost matrices are computed once."""
-    dist, cl = _fused(ctx, cfg)
+    dist, cl = fused or fuse(ctx, cfg)
     return {t: _solve(ctx, cfg.solver.name, {**cfg.solver.params, "threshold": t}, dist, cl) for t in thresholds}

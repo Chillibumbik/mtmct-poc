@@ -11,7 +11,27 @@ import pandas as pd
 import pytest
 
 from mtmct.data.base import CameraInfo, SequenceInfo, SequenceMeta
-from mtmct.eval import concat_cameras, evaluate_run, iou_matrix, match_boxes
+from mtmct.eval import evaluate_run, iou_matrix
+from mtmct.eval.mot import frame_steps, matches_table, step_matches
+
+
+def concat_cameras(df: pd.DataFrame, seq: SequenceInfo) -> pd.DataFrame:
+    """Reference: cameras laid end to end in time, `frame' = cam_index · (max n_frames + 1) + frame`."""
+    index = {c.camera_id: i for i, c in enumerate(seq.cameras)}
+    stride = max(c.n_frames for c in seq.cameras) + 1
+    cam_index = df["camera_id"].map(index).to_numpy(np.int64)
+    return df.assign(frame_id=df["frame_id"].to_numpy(np.int64) + cam_index * stride)
+
+
+def match_boxes(gt: pd.DataFrame, pred: pd.DataFrame, iou: float, seq: SequenceInfo) -> pd.DataFrame:
+    """Reference: Hungarian matching on every camera+frame with GT or predictions."""
+    cams = pd.concat([gt["camera_id"], pred["camera_id"]]).unique()
+    frames = {
+        c: np.union1d(gt.loc[gt["camera_id"] == c, "frame_id"], pred.loc[pred["camera_id"] == c, "frame_id"])
+        for c in cams
+    }
+    g, p = step_matches(frame_steps(gt, pred, frames), iou)
+    return matches_table(gt, pred, g, p, seq)
 
 
 def _seq(n_cams: int = 2, n_frames: int = 100, fps: float = 10.0) -> SequenceInfo:
@@ -80,15 +100,6 @@ def test_iou_matrix() -> None:
     b = np.array([[0, 0, 10, 10], [5, 0, 10, 10], [100, 100, 5, 5]], dtype=float)
     np.testing.assert_allclose(iou_matrix(a, b), [[1.0, 50 / 150, 0.0]])
     assert iou_matrix(a[:0], b).shape == (0, 3)
-
-
-def test_concat_cameras() -> None:
-    seq = _seq(n_cams=3, n_frames=100)
-    seq.cameras[1].n_frames = 120
-    df = pd.DataFrame({"camera_id": ["c0", "c1", "c2"], "frame_id": [5, 5, 7]})
-    out = concat_cameras(df, seq)
-    assert out["frame_id"].tolist() == [5, 121 + 5, 2 * 121 + 7]
-    assert df["frame_id"].tolist() == [5, 5, 7]  # input untouched
 
 
 def test_match_boxes_hungarian_and_threshold() -> None:

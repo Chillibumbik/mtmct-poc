@@ -7,9 +7,9 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-JobKind = Literal["dataset_fetch", "dataset_prepare", "run", "sweep", "eval_only"]
+JobKind = Literal["dataset_fetch", "dataset_prepare", "run", "sweep"]
 JobStatus = Literal["queued", "running", "done", "failed", "cancelled"]
-DatasetStatus = Literal["absent", "downloading", "downloaded", "preparing", "ready", "error"]
+DatasetStatus = Literal["absent", "downloading", "preparing", "ready", "error"]
 RunMode = Literal["full", "oracle"]
 
 
@@ -38,7 +38,6 @@ class ComponentOut(BaseModel):
     name: str
     params_schema: dict[str, Any]
     licence: str
-    optional: bool
     description: str
 
 
@@ -93,7 +92,6 @@ class RunCreate(BaseModel):
         default_factory=dict
     )  # dotted keys, e.g. {"associate.solver.params.threshold": 0.5}
     name: str | None = None
-    parent_sweep_id: int | None = None
 
 
 class SweepCreate(BaseModel):

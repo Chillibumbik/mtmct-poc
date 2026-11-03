@@ -13,11 +13,9 @@ from pydantic import BaseModel
 
 CATEGORIES = ("detector", "tracker", "reid", "foot_point", "cost", "solver")
 
-# Modules that register components when imported. Missing modules are skipped so that
-# zones can land independently; optional extras (AGPL) are imported only if installed.
+# Modules that register components when imported.
 PLUGIN_MODULES = (
     "mtmct.detect.yolox",
-    "mtmct.detect.ultralytics_yolo",
     "mtmct.reid.osnet",
     "mtmct.reid.omz",
     "mtmct.track.trackers_lib",
@@ -39,7 +37,6 @@ class ComponentInfo(BaseModel):
     name: str
     params_schema: dict[str, Any]
     licence: str
-    optional: bool
     description: str
 
 
@@ -64,12 +61,7 @@ def register(category: str, name: str):
 
 def load_plugins() -> None:
     for module in PLUGIN_MODULES:
-        try:
-            importlib.import_module(module)
-        except ModuleNotFoundError as e:
-            # Skip only when the plugin module itself (or its optional extra) is absent.
-            if e.name is None or not (module.startswith(e.name) or e.name in {"ultralytics", "torch"}):
-                raise
+        importlib.import_module(module)
 
 
 def get(category: str, name: str) -> Any:
@@ -96,7 +88,6 @@ def catalog() -> dict[str, list[ComponentInfo]]:
                 name=name,
                 params_schema=cls.Params.model_json_schema(),
                 licence=cls.LICENCE,
-                optional=bool(getattr(cls, "OPTIONAL", False)),
                 description=(cls.__doc__ or "").strip().split("\n")[0],
             )
             for name, cls in sorted(items.items())

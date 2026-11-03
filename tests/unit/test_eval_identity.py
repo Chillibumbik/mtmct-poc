@@ -7,13 +7,14 @@ import pytest
 from mtmct.eval import identity_metrics, reid_sanity
 
 
-def _matches(cells: list[tuple[int, int, int]], camera_id: str = "c0") -> pd.DataFrame:
-    """cells: (person_id, global_id, n_boxes) → that many matched boxes at consecutive timestamps."""
+def _matches(cells: list[tuple[int, ...]], camera_id: str = "c0") -> pd.DataFrame:
+    """cells: (person_id, global_id, n_boxes[, tracklet_id]) → that many matched boxes at consecutive timestamps;
+    the tracklet defaults to one per (person, global id)."""
     rows = []
     t = 0
-    for person, gid, n in cells:
+    for person, gid, n, *tid in cells:
         for _ in range(n):
-            rows.append((person, gid, 100 * person + gid, camera_id, t, t / 10))
+            rows.append((person, gid, tid[0] if tid else 100 * person + gid, camera_id, t, t / 10))
             t += 1
     return pd.DataFrame(rows, columns=["person_id", "global_id", "tracklet_id", "camera_id", "frame_id", "ts"])
 
@@ -32,7 +33,8 @@ def test_identity_false_merge_counted() -> None:
     assert case["tracklet_ids"] == [7, 107]
     assert case["t"] == pytest.approx(3.0)  # first box of the second person under id 7
     assert res["pairwise_r"] == pytest.approx(1.0) and res["pairwise_p"] < 1.0
-    assert res["purity"] == pytest.approx(30 / 54) and res["inverse_purity"] == pytest.approx(1.0)
+    # cluster metrics count tracklets (one per cell here), not boxes: 3 tracklets in one cluster
+    assert res["purity"] == pytest.approx(1 / 3) and res["inverse_purity"] == pytest.approx(1.0)
 
 
 def test_identity_false_split_counted() -> None:
@@ -47,16 +49,25 @@ def test_identity_false_split_counted() -> None:
 
 
 def test_identity_pairwise_and_bcubed_values() -> None:
-    # person 0: 2 boxes id A, 1 box id B; person 1: 1 box id B
-    m = _matches([(0, 0, 2), (0, 1, 1), (1, 1, 1)])
+    # items are tracklets, whatever their length. person 0: tracklets 1 (50 boxes) and 2 under id A, 3 under id B;
+    # person 1: tracklet 4 under id B
+    m = _matches([(0, 0, 50, 1), (0, 0, 1, 2), (0, 1, 1, 3), (1, 1, 1, 4)])
     res = identity_metrics(m, *_ids(m))
-    # pairs: same pred = {AA, BB} = 2, same gt = 3, both = 1
+    # tracklet pairs: same pred = {12, 34} = 2, same gt = {12, 13, 23} = 3, both = {12} = 1
     assert res["pairwise_p"] == pytest.approx(1 / 2)
     assert res["pairwise_r"] == pytest.approx(1 / 3)
     assert res["pairwise_f1"] == pytest.approx(2 * (1 / 2) * (1 / 3) / (1 / 2 + 1 / 3))
     # BCubed precision per item: 1, 1, 1/2, 1/2; recall: 2/3, 2/3, 1/3, 1
     assert res["bcubed_p"] == pytest.approx(3 / 4)
     assert res["bcubed_r"] == pytest.approx((2 / 3 + 2 / 3 + 1 / 3 + 1) / 4)
+
+
+def test_identity_tracklet_labelled_by_majority_person() -> None:
+    # tracklet 1: 5 boxes of person 0 and 2 of person 1 → person 0; tracklet 2 (person 1) shares its id
+    m = _matches([(0, 0, 5, 1), (1, 0, 2, 1), (1, 0, 3, 2)])
+    res = identity_metrics(m, *_ids(m))
+    assert res["pairwise_p"] == pytest.approx(0.0) and res["pairwise_r"] == pytest.approx(1.0)
+    assert res["purity"] == pytest.approx(1 / 2)
 
 
 def test_identity_empty() -> None:

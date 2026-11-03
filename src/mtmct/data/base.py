@@ -47,7 +47,6 @@ class SequenceMeta(BaseModel):
     # split name → (start, end) as fractions of the sequence duration, e.g. {"tune": (0, 0.9), "test": (0.9, 1)}
     splits: dict[str, tuple[float, float]] = Field(default_factory=lambda: {"all": (0.0, 1.0)})
     duration_s: float
-    gt_frame_step: int = 1  # GT annotates every k-th frame (frames in between are unannotated, not empty)
     n_persons: int | None = None
     notes: str = ""
 

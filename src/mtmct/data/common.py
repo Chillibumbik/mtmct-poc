@@ -12,6 +12,8 @@ import numpy as np
 import pandas as pd
 
 from mtmct.data.base import CameraInfo, Overlap, SequenceInfo, SequenceMeta
+from mtmct.geometry.foot import BottomCenter
+from mtmct.geometry.homography import to_ground
 from mtmct.io import GroundTruth, write_table
 
 # <track_id> <xmin> <ymin> <xmax> <ymax> <frame> <lost> <occluded> <generated> <label>  (Vatic export)
@@ -62,31 +64,16 @@ def copy_video(src: Path, dst: Path) -> None:
     shutil.copy2(src, dst)
 
 
-def apply_homography(H: np.ndarray, xy: np.ndarray) -> np.ndarray:
-    p = np.c_[xy, np.ones(len(xy))] @ H.T
-    return p[:, :2] / p[:, 2:3]
-
-
-MAX_RANGE_M = 100.0  # scene extent: farther ground points are numerically meaningless (foot at the horizon)
-
-
 def add_world(gt: pd.DataFrame, cameras: list[CameraInfo]) -> pd.DataFrame:
-    """Fill world_x/world_y with the foot point (bottom centre of the box) through the camera's H.
-
-    Foot points above the horizon (ray misses the ground) or farther than MAX_RANGE_M stay null.
-    """
+    """Fill world_x/world_y with the bottom-centre foot point projected through the camera's H (`to_ground`)."""
     gt = gt.assign(world_x=np.float32("nan"), world_y=np.float32("nan"))
+    foot_point = BottomCenter(BottomCenter.Params())
     for cam in cameras:
-        H = cam.H()
-        if H is None:
-            continue
         rows = gt["camera_id"] == cam.camera_id
-        foot = np.c_[gt.loc[rows, "x"] + gt.loc[rows, "w"] / 2, gt.loc[rows, "y"] + gt.loc[rows, "h"]].astype(float)
-        w = np.c_[foot, np.ones(len(foot))] @ H[2]
-        below_horizon = w * (H @ [cam.width / 2, cam.height, 1.0])[2] > 0  # same side as the image bottom
-        world = apply_homography(H, foot)
-        world[~below_horizon | (np.abs(world) > MAX_RANGE_M).any(axis=1)] = np.nan
-        gt.loc[rows, ["world_x", "world_y"]] = world.astype("float32")
+        if cam.H() is None or not rows.any():
+            continue
+        foot = foot_point.foot(gt.loc[rows, ["x", "y", "w", "h"]].to_numpy(np.float64))
+        gt.loc[rows, ["world_x", "world_y"]] = to_ground(cam, foot).astype("float32")
     return gt
 
 
@@ -137,7 +124,7 @@ def build_sequence(
         gt = add_world(gt, cameras)
         write_table(gt, root / "gt.parquet", GroundTruth)
         n_persons = int(gt["person_id"].nunique())
-    duration = max(c.n_frames / c.fps for c in cameras)
+    duration = max((c.n_frames + c.frame_offset) / c.fps for c in cameras)
     seq = SequenceInfo(
         dataset=dataset,
         sequence=sequence,

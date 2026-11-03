@@ -117,7 +117,7 @@ def test_upload_custom_accepts_video_with_safe_names(client, home, tmp_path):
             ("videos", ("../../../evil name.mp4", io.BytesIO(data), "video/mp4")),
             ("videos", ("b.mov", io.BytesIO(data), "video/quicktime")),
             ("calibration", ("calib.json", io.BytesIO(b'{"c0": {}}'), "application/json")),
-            ("gt", ("gt.csv", io.BytesIO(b"frame,id,x,y,w,h\n"), "text/csv")),
+            ("gt", ("gt.csv", io.BytesIO(b"camera_id,frame_id,person_id,x,y,w,h\nc1,0,1,1,1,5,5\n"), "text/csv")),
         ],
     )
     assert r.status_code == 200, r.text
@@ -138,6 +138,25 @@ def test_upload_custom_accepts_video_with_safe_names(client, home, tmp_path):
     )
     custom = next(d for d in client.get("/api/datasets").json() if d["id"] == "custom")
     assert custom["status"] == "preparing" and custom["job_id"] == r.json()["id"]
+
+
+@pytest.mark.parametrize(
+    "gt",
+    [b"1,1,10,10,5,5,1,-1,-1,-1\n", b"frame,id,x,y,w,h\n", b"c3,0,1,1,1,5,5\n", b""],
+    ids=["mot", "bad", "cam", "empty"],
+)
+def test_upload_custom_rejects_bad_gt_early(client, home, tmp_path, gt):
+    r = client.post(
+        "/api/datasets/custom",
+        data={"name": "mine"},
+        files=[
+            ("videos", ("a.mp4", io.BytesIO(_mp4_bytes(tmp_path)), "video/mp4")),
+            ("gt", ("gt.csv", io.BytesIO(gt))),
+        ],
+    )
+    assert r.status_code == 422, r.text
+    assert "camera_id,frame_id,person_id,x,y,w,h" in r.json()["detail"]
+    assert not (paths().raw / "custom" / "mine").exists()
 
 
 def test_upload_size_limit(client, home, tmp_path, monkeypatch):

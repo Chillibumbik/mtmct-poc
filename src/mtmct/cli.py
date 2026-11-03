@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Annotated
+from typing import Annotated, Literal
 
 import typer
 
@@ -47,7 +47,7 @@ def run(
     dataset: str,
     sequence: str,
     split: str = "all",
-    mode: str = "full",
+    mode: Literal["full", "oracle"] = "full",
     profile: str | None = None,
     set_: Annotated[list[str] | None, typer.Option("--set", help="dotted.key=json_value")] = None,
 ) -> None:

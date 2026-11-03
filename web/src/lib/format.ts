@@ -57,5 +57,4 @@ export const JOB_KIND_LABELS: Record<string, string> = {
   sweep: 'Sweep',
   dataset_fetch: 'Скачивание',
   dataset_prepare: 'Подготовка',
-  eval_only: 'Переоценка',
 }

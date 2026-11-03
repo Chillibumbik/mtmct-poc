@@ -10,7 +10,8 @@ from conftest import write_video
 
 from mtmct.data import campus, custom, epfl_terrace
 from mtmct.data.base import CameraInfo, load_adapters, load_sequence
-from mtmct.data.common import add_world, apply_homography, read_xu_gt
+from mtmct.data.common import add_world, build_sequence, read_xu_gt
+from mtmct.geometry.homography import apply_h
 from mtmct.io import GroundTruth, read_table
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "data"
@@ -52,7 +53,7 @@ def test_campus_homography_from_krt_maps_known_point():
     P = np.array([-6.0, 5.0, 0.0])
     m = cam.K @ cam.R @ (P - cam.T)
     pixel = (m[:2] / m[2] + cam.center.astype(float)) / cam.scale
-    back = apply_homography(cams["HC2"], pixel[None])[0]
+    back = apply_h(cams["HC2"], pixel[None])[0]
     assert np.abs(back - P[:2]).max() < 1e-6
 
 
@@ -69,13 +70,13 @@ def test_campus_garden2_calibration_layout(tmp_path):
     P = np.array([3.0, 4.0, 0.0])
     m = K @ R @ (P - C)
     pixel = m[:2] / m[2] + [960, 540]
-    assert np.abs(apply_homography(H, pixel[None])[0] - P[:2]).max() < 1e-6
+    assert np.abs(apply_h(H, pixel[None])[0] - P[:2]).max() < 1e-6
 
 
 def test_epfl_calibration_maps_into_metric_area():
     Hs = epfl_terrace.read_calibration(FIXTURES / "epfl_terrace" / "calibration-terrace.txt")
     assert list(Hs) == ["c0", "c1", "c2", "c3"]
-    ground = np.vstack([apply_homography(H, np.array([[180.0, 250.0]])) for H in Hs.values()])
+    ground = np.vstack([apply_h(H, np.array([[180.0, 250.0]])) for H in Hs.values()])
     # image centre-bottom of every camera lands within the 7.5 x 11 m terrace, and cameras agree within a few metres
     assert np.all((ground[:, 0] > -1) & (ground[:, 0] < 9) & (ground[:, 1] > -2) & (ground[:, 1] < 12))
 
@@ -104,7 +105,7 @@ def test_epfl_prepare_writes_canonical_layout(tmp_path):
     gt = gt[gt.camera_id == "c0"]
     assert gt.world_x.notna().all()
     foot = np.c_[gt.x + gt.w / 2, gt.y + gt.h]
-    expected = apply_homography(seq.camera("c0").H(), foot)
+    expected = apply_h(seq.camera("c0").H(), foot)
     assert np.allclose(gt[["world_x", "world_y"]].to_numpy(), expected, atol=1e-3)
 
 
@@ -113,6 +114,15 @@ def test_gt_beyond_video_length_is_rejected(tmp_path):
     write_video(raw / "terrace1-c3.avi", 100, 25.0, size=(36, 28))  # GT frames reach 121
     with pytest.raises(ValueError, match="beyond the video length"):
         epfl_terrace.EpflTerrace().prepare(raw, tmp_path / "data", lambda f, m: None)
+
+
+def test_build_sequence_duration_includes_frame_offset(tmp_path):
+    write_video(tmp_path / "up" / "a.avi", 25, 25.0)
+    seq = build_sequence(
+        tmp_path / "data", "x", "s", {"a": tmp_path / "up" / "a.avi"}, None,
+        overlap="overlap", splits={"all": (0.0, 1.0)}, frame_offsets={"a": 25},
+    )  # fmt: skip
+    assert seq.meta.duration_s == pytest.approx(2.0)
 
 
 def test_custom_prepare_without_gt(tmp_path):

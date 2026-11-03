@@ -1,4 +1,4 @@
-"""Cross-camera evaluation helpers: camera concatenation and cheap IDF1 re-scoring for relabelled tracklets."""
+"""Cross-camera evaluation helper: cheap IDF1 re-scoring for relabelled tracklets."""
 
 from __future__ import annotations
 
@@ -8,19 +8,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import linear_sum_assignment
 
-from mtmct.data.base import SequenceInfo
 from mtmct.eval.mot import Step
-
-
-def concat_cameras(df: pd.DataFrame, seq: SequenceInfo) -> pd.DataFrame:
-    """Cameras laid end to end in time: `frame' = cam_index · (max_frame + 1) + frame`, max_frame = max n_frames."""
-    index = {c.camera_id: i for i, c in enumerate(seq.cameras)}
-    unknown = set(df["camera_id"]) - set(index)
-    if unknown:
-        raise KeyError(f"cameras not in sequence {seq.dataset}/{seq.sequence}: {sorted(unknown)}")
-    stride = max(c.n_frames for c in seq.cameras) + 1
-    cam_index = df["camera_id"].map(index).to_numpy(np.int64)
-    return df.assign(frame_id=df["frame_id"].to_numpy(np.int64) + cam_index * stride)
 
 
 @dataclass

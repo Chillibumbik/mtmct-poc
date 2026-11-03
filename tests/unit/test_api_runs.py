@@ -115,19 +115,6 @@ def test_sweep_expands_grid_and_worker_queues_children(client, seq):
     )
 
 
-def test_eval_only_reuses_run_dir(client, seq):
-    rid = _finish_run(client)
-    r = client.post(f"/api/runs/{rid}/eval", json={"overrides": {"associate.solver.params.threshold": 0.7}})
-    assert r.status_code == 200, r.text
-    job = client.get(f"/api/jobs/{r.json()['job_id']}").json()
-    assert job["kind"] == "eval_only" and job["status"] == "queued"
-    runner = FakeRunner()
-    Worker(runner=runner).tick()
-    assert runner.calls[0]["cfg"].associate.solver.params["threshold"] == 0.7
-    assert runner.calls[0]["out_dir"] == paths().outputs / f"{rid:05d}"
-    assert client.get(f"/api/runs/{rid}").json()["status"] == "done"
-
-
 def test_tracks_window_gt_and_limit(client, seq):
     rid = _finish_run(client)
     out = client.get(f"/api/runs/{rid}/tracks", params={"camera": "c0", "t0": 0, "t1": 0.5}).json()
@@ -142,7 +129,7 @@ def test_tracks_window_gt_and_limit(client, seq):
     assert client.get(f"/api/runs/{rid}/tracks", params={"camera": "zz"}).status_code == 404
 
 
-def test_tracks_limit_300_frames(client, seq, tmp_path):
+def test_tracks_window_capped_at_30_s(client, seq, tmp_path):
     rid = _finish_run(client)
     import pandas as pd
 
@@ -165,7 +152,8 @@ def test_tracks_limit_300_frames(client, seq, tmp_path):
     )
     write_table(df, paths().outputs / f"{rid:05d}" / "global_tracks.csv", GlobalTracks)
     out = client.get(f"/api/runs/{rid}/tracks", params={"camera": "c0", "t0": 0, "t1": 1000}).json()
-    assert len(out["frames"]) == 300 and out["frames"][-1]["frame_id"] == 299
+    # the cap is on time, never on frames, so a window is complete at any fps (here 25 fps)
+    assert len(out["frames"]) == 750 and out["frames"][-1]["frame_id"] == 749
 
 
 def test_tracks_include_gt(client, seq):

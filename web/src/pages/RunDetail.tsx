@@ -20,7 +20,7 @@ import { PageHeader, Section } from '@/components/app/PageHeader'
 import { EmptyState, ErrorState, LoadingBlock, QueryView } from '@/components/app/States'
 import { SplitBadge, StatusBadge } from '@/components/app/StatusBadge'
 import { getPath } from '@/lib/config'
-import { STAGE_LABELS, formatDate, formatEta } from '@/lib/format'
+import { STAGE_LABELS, formatDate } from '@/lib/format'
 import { METRIC_SECTIONS, formatMetric } from '@/lib/metrics'
 import { parseRuntime } from '@/lib/runtime'
 
@@ -37,7 +37,7 @@ function RunLive({ run }: { run: RunOut }) {
             {run.status === 'queued' ? 'Прогон в очереди' : `Стадия: ${p.stage ? (STAGE_LABELS[p.stage] ?? p.stage) : '—'}`}
           </span>
           <span className="text-xs tabular-nums text-muted-foreground">
-            {Math.round(p.progress * 100)}% · ETA {formatEta(p.etaS)}
+            {Math.round(p.progress * 100)}%
           </span>
         </div>
         <Progress value={p.progress * 100} className="h-2" />

@@ -50,13 +50,11 @@ describe('applyJobEvent', () => {
     expect(s.progress).toBe(0.5)
   })
 
-  it('takes ETA and terminal status from event data', () => {
-    let s = fold([ev({ stage: 'eval', progress: 0.9, data: { eta_s: 12 } })])
-    expect(s.etaS).toBe(12)
+  it('takes the terminal status from event data', () => {
+    let s = fold([ev({ stage: 'eval', progress: 0.9 })])
     s = applyJobEvent(s, ev({ progress: 1, message: 'done', data: { status: 'done' } }))
     expect(s.status).toBe('done')
     expect(s.stages.eval.state).toBe('done')
-    expect(s.etaS).toBe(0)
   })
 
   it('marks the current stage failed on failure', () => {
@@ -67,7 +65,7 @@ describe('applyJobEvent', () => {
 
   it('applies the terminal `end` SSE message (status only)', () => {
     const s = applyJobEnd(fold([ev({ stage: 'eval', progress: 0.95, stage_progress: 0.5 })]), 'done')
-    expect(s).toMatchObject({ status: 'done', progress: 1, etaS: 0 })
+    expect(s).toMatchObject({ status: 'done', progress: 1 })
     expect(s.stages.eval.state).toBe('done')
     const c = applyJobEnd(fold([ev({ stage: 'detect', progress: 0.2 })]), 'cancelled')
     expect(c.status).toBe('cancelled')

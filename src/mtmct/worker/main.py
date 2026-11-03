@@ -94,7 +94,7 @@ class JobContext:
                     job.stage_progress = ev.stage_progress
                 if ev.progress is not None:
                     job.progress = ev.progress
-                    job.eta_s = _eta(job.started_at, ev.progress, ev.data)
+                    job.eta_s = _eta(job.started_at, ev.progress)
                 s.add(job)
             s.commit()
 
@@ -125,9 +125,7 @@ class JobContext:
         return cb
 
 
-def _eta(started_at: datetime | None, progress: float, data: dict[str, Any]) -> float | None:
-    if isinstance(data.get("eta_s"), int | float):
-        return float(data["eta_s"])
+def _eta(started_at: datetime | None, progress: float) -> float | None:
     if started_at is None or progress < 0.02:
         return None
     return (utcnow() - started_at).total_seconds() * (1 - progress) / progress
@@ -214,7 +212,6 @@ class Worker:
     def _handlers(cls) -> dict[str, Callable[[Worker, int, JobContext], None]]:
         return {
             "run": cls._do_run,
-            "eval_only": cls._do_run,
             "sweep": cls._do_sweep,
             "dataset_fetch": cls._do_dataset,
             "dataset_prepare": cls._do_dataset,
@@ -316,6 +313,7 @@ class Worker:
             return [seq]
         except BaseException:
             shutil.rmtree(raw, ignore_errors=True)
+            shutil.rmtree(paths().data / "custom" / payload["name"], ignore_errors=True)
             raise
 
     @staticmethod

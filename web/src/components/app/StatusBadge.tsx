@@ -13,7 +13,6 @@ const STATUS: Record<Status, { label: string; cls: string; icon: typeof CheckCir
   cancelled: { label: 'отменено', cls: 'text-muted-foreground', icon: CircleSlash },
   absent: { label: 'не скачан', cls: 'text-muted-foreground', icon: Download },
   downloading: { label: 'скачивается', cls: 'text-brand', icon: Loader2, spin: true },
-  downloaded: { label: 'скачан', cls: 'text-muted-foreground', icon: CircleDashed },
   preparing: { label: 'подготовка', cls: 'text-brand', icon: Loader2, spin: true },
   ready: { label: 'готов', cls: 'text-good', icon: CheckCircle2 },
   error: { label: 'ошибка', cls: 'text-bad', icon: XCircle },

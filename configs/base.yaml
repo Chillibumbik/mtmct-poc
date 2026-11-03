@@ -4,6 +4,7 @@ data:
   max_rss_gb: 9.0
 detect: {name: yolox_s, params: {conf: 0.3, nms: 0.45, input_size: 640}}
 track: {name: bytetrack, params: {}}
+# `batch` is ignored (the pipeline batches crops, stages.REID_BATCH); it stays only to keep reid cache keys valid.
 reid: {name: osnet_ain_x1_0, params: {batch: 32}}
 # T13a (garden1 tune, osnet_ain_x1_0; confirmed on garden2 test and terrace1): cutting tracklets at appearance
 # jumps is the main lever against in-camera ID switches. Thresholds are on the ReID model's cosine scale;

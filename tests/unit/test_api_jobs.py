@@ -54,6 +54,25 @@ def test_cancel_job(client, seq):
     assert client.post("/api/jobs/9999/cancel").status_code == 404
 
 
+def test_cancel_racing_worker_claim_sets_flag(client, seq):
+    from mtmct.api.jobs import _cancel
+
+    queued = _run_job(client)
+    with open_session() as api:
+        job = api.get(Job, queued["job_id"])
+        assert job.status == "queued"
+        with open_session() as worker:  # the worker claims the job after the API has read it
+            claimed = worker.get(Job, queued["job_id"])
+            claimed.status = "running"
+            worker.add(claimed)
+            worker.commit()
+        _cancel(api, job)
+        api.commit()
+    with open_session() as s:
+        job = s.get(Job, queued["job_id"])
+        assert job.status == "running" and job.cancel_requested is True
+
+
 def test_cancel_sweep_cascades(client, seq):
     body = {
         "dataset": "toy",

@@ -16,6 +16,7 @@ from mtmct.api.common import SessionDep, job_out
 from mtmct.api.schemas import DatasetOut, JobOut, SequenceOut
 from mtmct.config import paths
 from mtmct.data.base import DatasetMeta, list_sequences, load_adapters, load_sequence
+from mtmct.data.custom import read_custom_gt
 from mtmct.db import Dataset, Job
 from mtmct.worker.media import media_ready, preview_path
 
@@ -71,7 +72,7 @@ def _sequences(dataset_id: str) -> list[SequenceOut]:
 def _dataset_out(meta: DatasetMeta, row: Dataset | None, custom: bool = False) -> DatasetOut:
     sequences = _sequences(meta.id)
     status = row.status if row else "absent"
-    if status in ("absent", "downloaded", "ready"):
+    if status in ("absent", "ready"):
         status = "ready" if sequences else "absent"
     return DatasetOut(
         id=meta.id,
@@ -146,6 +147,19 @@ def _is_video(path: Path) -> bool:
         cap.release()
 
 
+def _check_gt(path: Path, cameras: set[str]) -> None:
+    try:
+        df = read_custom_gt(path)
+        if unknown := set(df["camera_id"]) - cameras:
+            raise ValueError(f"unknown cameras {sorted(unknown)}")
+    except ValueError as e:
+        raise HTTPException(
+            422,
+            f"GT must be a CSV camera_id,frame_id,person_id,x,y,w,h with camera_id in {sorted(cameras)} "
+            f"(videos in upload order) and 0-based frame_id: {e}",
+        ) from e
+
+
 @router.post("/datasets/custom", response_model=JobOut)
 def upload_custom(
     name: Annotated[str, Form()],
@@ -162,7 +176,10 @@ def upload_custom(
     raw = paths().raw / "custom" / name
     if raw.exists() or (paths().data / "custom" / name).exists():
         raise HTTPException(409, f"custom sequence {name!r} already exists")
-    (raw / "videos").mkdir(parents=True)
+    try:
+        (raw / "videos").mkdir(parents=True)
+    except FileExistsError:  # a concurrent upload of the same name won the race
+        raise HTTPException(409, f"custom sequence {name!r} already exists") from None
     try:
         saved = []
         for i, up in enumerate(videos):
@@ -186,6 +203,7 @@ def upload_custom(
         if gt is not None:
             gt_path = raw / "gt.csv"
             _save_limited(gt.file, gt_path, MAX_GT_BYTES)
+            _check_gt(gt_path, {Path(v).stem for v in saved})
         payload = {
             "dataset_id": "custom",
             "name": name,

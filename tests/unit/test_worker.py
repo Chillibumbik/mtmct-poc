@@ -172,6 +172,25 @@ def test_worker_dataset_prepare_custom_import_error(home, monkeypatch):
     assert not raw.exists()
 
 
+def test_worker_dataset_prepare_custom_failure_removes_partial_sequence(home):
+    from conftest import write_video
+
+    raw = paths().raw / "custom" / "mine"
+    (raw / "videos").mkdir(parents=True)
+    write_video(raw / "videos" / "c0.avi", 5, 10.0)
+    (raw / "gt.csv").write_text("c9,0,1,1,1,5,5\n")  # unknown camera: fails after the video is copied
+    payload = {"dataset_id": "custom", "name": "mine", "videos": [str(raw / "videos" / "c0.avi")]}
+    with open_session() as s:
+        s.add(
+            Job(kind="dataset_prepare", title="p", dataset_id="custom", payload=payload | {"gt": str(raw / "gt.csv")})
+        )
+        s.commit()
+    Worker(runner=FakeRunner()).tick()
+    with open_session() as s:
+        assert "unknown cameras" in s.exec(select(Job)).one().error
+    assert not raw.exists() and not (paths().data / "custom" / "mine").exists()
+
+
 def test_make_proxy_downscales_and_keeps_fps(tmp_path: Path):
     import cv2
     from conftest import write_video

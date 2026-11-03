@@ -13,8 +13,9 @@ def test_zero_weight_cost_is_fully_disabled():
         for tid, cam, off in [(1, "c0", 0.0), (10_000_001, "c1", 10.0)]
         for t in ts
     ]
-    portraits = pd.DataFrame({"tracklet_id": [1, 10_000_001], "camera_id": ["c0", "c1"],
-                              "t_start": [0.0, 0.0], "t_end": [0.9, 0.9]})
+    portraits = pd.DataFrame(
+        {"tracklet_id": [1, 10_000_001], "camera_id": ["c0", "c1"], "t_start": [0.0, 0.0], "t_end": [0.9, 0.9]}
+    )
     emb = np.tile(np.eye(4)[:1], (2, 1))  # identical appearance
     ctx = build_context(None, pd.DataFrame(rows), portraits, emb, [emb[:1], emb[:1]])  # type: ignore[arg-type]
     on = AssociateCfg(costs={"appearance": CostSpec(), "geometry": CostSpec(weight=1.0, params={"hard": True})})

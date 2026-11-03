@@ -10,7 +10,7 @@ import pytest
 
 from mtmct.data import wildtrack
 from mtmct.data.base import load_adapters, load_sequence
-from mtmct.data.common import apply_homography
+from mtmct.geometry.homography import apply_h
 from mtmct.io import GroundTruth, read_table
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "data" / "wildtrack"
@@ -58,7 +58,7 @@ def test_wildtrack_calibration_roundtrip():
     ground_m = np.array([[1.5, -2.0], [-0.5, 4.25], [3.0, 0.0]])
     ground_cm = np.c_[ground_m * 100, np.zeros(len(ground_m))]
     pixels, _ = cv2.projectPoints(ground_cm, rvec, tvec, K, None)
-    assert np.abs(apply_homography(H, pixels.reshape(-1, 2)) - ground_m).max() < 1e-6
+    assert np.abs(apply_h(H, pixels.reshape(-1, 2)) - ground_m).max() < 1e-6
 
 
 def _tiny_zip(path: Path) -> None:
@@ -95,7 +95,7 @@ def test_wildtrack_prepare_uses_annotated_frames_as_cameras(tmp_path):
     assert (cam.width, cam.height) == (48, 32) and cam.H() is not None
     assert sorted(p.name for p in (seq.root / cam.source).iterdir()) == ["000000.png", "000001.png"]
     assert seq.meta.splits == {"tune": (0.0, 0.9), "test": (0.9, 1.0), "all": (0.0, 1.0)}
-    assert seq.meta.duration_s == 1.0 and seq.meta.gt_frame_step == 1
+    assert seq.meta.duration_s == 1.0
     gt = read_table(seq.root / "gt.parquet", GroundTruth)
     assert set(gt.frame_id) == {0, 1} and gt.world_x.notna().all() and seq.meta.n_persons == 4
 
@@ -119,7 +119,7 @@ def test_wildtrack_real_ids_and_geometry_are_consistent():
     for cam in seq.cameras:
         g = gt[gt.camera_id == cam.camera_id]
         foot = np.c_[g.x + g.w / 2, g.y + g.h]
-        err = np.linalg.norm(apply_homography(cam.H(), foot) - g[["world_x", "world_y"]].to_numpy(), axis=1)
+        err = np.linalg.norm(apply_h(cam.H(), foot) - g[["world_x", "world_y"]].to_numpy(), axis=1)
         assert np.median(err) < 0.3
     # personID is a track id: a person moves little in 0.5 s (a handful of annotation glitches excepted)
     one = gt.drop_duplicates(["frame_id", "person_id"]).sort_values(["person_id", "frame_id"])

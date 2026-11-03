@@ -31,13 +31,13 @@ def crops() -> list[np.ndarray]:
 
 @weights(*DIMS)
 def test_reid_embed_shape_and_l2_norm(name: str):
-    reid = registry.create("reid", name, {"batch": 2})  # 3 crops → two chunks
+    reid = registry.create("reid", name)
     emb = reid.embed(crops())
     assert reid.dim == DIMS[name]
     assert emb.shape == (3, DIMS[name]) and emb.dtype == np.float32
     np.testing.assert_allclose(np.linalg.norm(emb, axis=1), 1.0, atol=1e-5)
-    full = registry.create("reid", name, {"batch": 32}).embed(crops())
-    np.testing.assert_allclose(emb, full, atol=1e-4)  # chunking does not change the result
+    one_by_one = np.vstack([reid.embed([c]) for c in crops()])
+    np.testing.assert_allclose(emb, one_by_one, atol=1e-4)  # batching does not change the result
 
 
 @weights(*DIMS)
@@ -61,6 +61,6 @@ def test_reid_empty_input():
 def test_reid_models_registered():
     for name, dim in DIMS.items():
         cls = registry.get("reid", name)
-        assert dim == cls.DIM and cls.Params().batch == 32
+        assert dim == cls.DIM
     with pytest.raises(ValueError):  # the OMZ model is an IR: no ONNX Runtime
         registry.create("reid", "omz_0287", {"backend": "onnxruntime"})

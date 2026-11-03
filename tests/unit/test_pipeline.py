@@ -8,7 +8,7 @@ import pytest
 from pydantic import BaseModel
 
 from mtmct.api.schemas import JobEventIn
-from mtmct.config import AssociateCfg, ComponentSpec, CostSpec, DataCfg, RunConfig, paths
+from mtmct.config import AssociateCfg, ComponentSpec, CostSpec, DataCfg, GeometryCfg, RunConfig, paths
 from mtmct.data.base import CameraInfo, SequenceInfo, SequenceMeta
 from mtmct.geometry.foot import BottomCenter
 from mtmct.io import TRACKLET_ID_CAMERA_FACTOR, GlobalTracks, GroundTruth, read_table, write_table
@@ -247,3 +247,52 @@ def test_geometry_missing_homography_warns_but_succeeds(home, seq, tmp_path):
     warnings = [e for e in events if e.level == "warning"]
     assert warnings and res.metrics["warnings"] == [e.message for e in warnings]
     assert res.metrics["identity"]["n_pred_ids"] == 2
+
+
+def test_stage_cache_recomputes_when_sequence_inputs_change(home, seq, tmp_path):
+    run(cfg(), seq, tmp_path / "a")
+    detected = CALLS["detect"]
+    seq.meta.notes = "re-prepared"
+    seq.save()
+    events: list[JobEventIn] = []
+    res = run(cfg(), seq, tmp_path / "b", events=events)
+    assert CALLS["detect"] > detected
+    assert not any(res.runtime["stages"][s]["cached"] for s in ("detect", "track", "reid", "refine"))
+    assert any(e.level == "warning" and "stale" in e.message for e in events)
+    assert res.metrics["warnings"] == []
+
+
+def test_stage_cache_without_fingerprint_is_accepted(home, seq, tmp_path):
+    run(cfg(), seq, tmp_path / "a")
+    for m in (home / "cache").rglob("manifest.json"):
+        body = json.loads(m.read_text())
+        assert body.pop("inputs_fingerprint")
+        m.write_text(json.dumps(body))
+    seq.meta.notes = "re-prepared"
+    seq.save()
+    calls = dict(CALLS)
+    res = run(cfg(), seq, tmp_path / "b")
+    assert calls == CALLS
+    assert all(res.runtime["stages"][s]["cached"] for s in ("detect", "track", "reid", "refine"))
+
+
+@register("foot_point", "stub_top_center")
+class StubTopCenter:
+    LICENCE = "test"
+
+    class Params(BaseModel):
+        pass
+
+    def __init__(self, params: Params) -> None:
+        pass
+
+    def foot(self, boxes_xywh: np.ndarray, keypoints: np.ndarray | None) -> np.ndarray:
+        return np.column_stack([boxes_xywh[:, 0] + boxes_xywh[:, 2] / 2, boxes_xywh[:, 1]])
+
+
+def test_stage_cache_tracks_foot_point_spec(home, seq, tmp_path):
+    run(cfg(), seq, tmp_path / "a", mode="oracle")
+    res = run(
+        cfg(geometry=GeometryCfg(foot_point=ComponentSpec(name="stub_top_center"))), seq, tmp_path / "b", "oracle"
+    )
+    assert not res.runtime["stages"]["oracle"]["cached"]

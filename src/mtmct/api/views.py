@@ -35,7 +35,7 @@ from mtmct.video.reader import IMAGE_EXTS
 
 router = APIRouter()
 
-MAX_FRAMES_PER_CALL = 300
+MAX_WINDOW_S = 30.0
 CROPS_PER_TRACKLET = 4
 CROP_HEIGHT = 128
 TRAJECTORY_BUCKET_S = 0.5
@@ -48,7 +48,7 @@ def _read_tracks(path: str, mtime_ns: int) -> pd.DataFrame:
     return read_table(Path(path), GlobalTracks)
 
 
-@lru_cache(maxsize=4)
+@lru_cache(maxsize=2)  # a large GT (AIC24 scene_041_all) is ~130 MB in pandas
 def _read_gt(path: str, mtime_ns: int) -> pd.DataFrame:
     return read_table(Path(path), GroundTruth)
 
@@ -95,13 +95,13 @@ def tracks(
     camera: str,
     session: SessionDep,
     t0: float = 0.0,
-    t1: Annotated[float | None, Query(description="default: t0 + 30 s")] = None,
+    t1: Annotated[float | None, Query(description="default and maximum: t0 + 30 s")] = None,
 ) -> TrackBoxes:
-    """Boxes of one camera in [t0, t1) on the common clock; at most 300 frames per call (page by t0)."""
+    """Boxes of one camera in [t0, t1) on the common clock; at most 30 s per call (page by t0)."""
     run = get_run(session, run_id)
     seq = load_seq(run.dataset, run.sequence)
     cam = _camera(seq, camera)
-    end = t0 + 30.0 if t1 is None else t1
+    end = t0 + MAX_WINDOW_S if t1 is None else min(t1, t0 + MAX_WINDOW_S)
 
     def window(df: pd.DataFrame) -> pd.DataFrame:
         df = df[df.camera_id == camera]
@@ -111,7 +111,7 @@ def tracks(
     pred = window(load_tracks(run_id))
     gt_all = load_gt(seq)
     gt = window(gt_all) if gt_all is not None else pd.DataFrame(columns=["frame_id"])
-    frame_ids = sorted(set(pred.frame_id) | set(gt.frame_id))[:MAX_FRAMES_PER_CALL]
+    frame_ids = sorted(set(pred.frame_id) | set(gt.frame_id))
     pred_by, gt_by = _boxes(pred, "global_id"), (_boxes(gt, "person_id") if len(gt) else {})
     frames = [
         FrameBoxes(frame_id=int(f), ts=float(cam.ts(int(f))), pred=pred_by.get(int(f), []), gt=gt_by.get(int(f), []))
@@ -154,7 +154,8 @@ def tracklet_gt_person(rows: pd.DataFrame, gt: pd.DataFrame | None) -> int | Non
     """GT person that overlaps the tracklet's boxes (IoU >= 0.5) most often, if GT exists."""
     if gt is None or rows.empty:
         return None
-    m = rows.merge(gt, on=["camera_id", "frame_id"], suffixes=("", "_gt"))
+    near = gt.camera_id.isin(rows.camera_id.unique()) & gt.frame_id.between(rows.frame_id.min(), rows.frame_id.max())
+    m = rows.merge(gt[near], on=["camera_id", "frame_id"], suffixes=("", "_gt"))
     if m.empty:
         return None
     iw = np.minimum(m.x + m.w, m.x_gt + m.w_gt) - np.maximum(m.x, m.x_gt)

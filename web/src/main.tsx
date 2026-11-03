@@ -2,7 +2,6 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from '@tanstack/react-router'
-import { toast } from 'sonner'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ApiError } from '@/api/client'
@@ -21,31 +20,15 @@ const queryClient = new QueryClient({
   },
 })
 
-async function start() {
-  let mockError: unknown = null
-  if (import.meta.env.VITE_MOCK === '1') {
-    try {
-      const { worker } = await import('./mocks/browser')
-      await worker.start({ onUnhandledFrame: 'bypass', quiet: true })
-    } catch (e) {
-      // Embedded browsers may forbid service workers; the UI still renders and shows API errors.
-      mockError = e
-      console.error('MSW mocks unavailable', e)
-    }
-  }
-  createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-      <ThemeProvider>
-        <QueryClientProvider client={queryClient}>
-          <TooltipProvider delayDuration={250}>
-            <RouterProvider router={router} />
-            <Toaster position="bottom-right" />
-          </TooltipProvider>
-        </QueryClientProvider>
-      </ThemeProvider>
-    </StrictMode>,
-  )
-  if (mockError) setTimeout(() => toast.error('Моки API не запущены: браузер запрещает Service Worker'), 500)
-}
-
-void start()
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider delayDuration={250}>
+          <RouterProvider router={router} />
+          <Toaster position="bottom-right" />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
+  </StrictMode>,
+)

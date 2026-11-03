@@ -15,7 +15,6 @@ export interface JobProgressState {
   lastId: number
   progress: number
   stage: string | null
-  etaS: number | null
   status: JobStatus | null
   order: string[]
   stages: Record<string, StageProgress>
@@ -34,7 +33,6 @@ export const initialJobProgress = (): JobProgressState => ({
   lastId: 0,
   progress: 0,
   stage: null,
-  etaS: null,
   status: null,
   order: [],
   stages: {},
@@ -69,13 +67,11 @@ export function applyJobEvent(state: JobProgressState, ev: JobEvent): JobProgres
     stages[stage] = status === 'done' ? { ...stages[stage], state: 'done', progress: 1 } : { ...stages[stage], state: 'failed' }
   }
 
-  const eta = ev.data?.eta_s
   const logs = state.logs.length >= MAX_LOG_LINES ? [...state.logs.slice(1 - MAX_LOG_LINES), ev] : [...state.logs, ev]
   return {
     lastId: ev.id,
     progress: ev.progress == null ? state.progress : Math.max(state.progress, clamp01(ev.progress)),
     stage,
-    etaS: status === 'done' ? 0 : typeof eta === 'number' ? eta : state.etaS,
     status,
     order,
     stages,
@@ -94,13 +90,12 @@ export function applyJobEnd(state: JobProgressState, status: JobStatus): JobProg
     status,
     stages,
     progress: status === 'done' ? 1 : state.progress,
-    etaS: status === 'done' ? 0 : null,
   }
 }
 
 /** Stages to render: the canonical pipeline for run jobs, otherwise stages in order of appearance. */
 export function stageList(state: JobProgressState, kind: JobOut['kind']): StageProgress[] {
-  if (kind !== 'run' && kind !== 'eval_only') return state.order.map((n) => state.stages[n])
+  if (kind !== 'run') return state.order.map((n) => state.stages[n])
   const oracle = 'oracle' in state.stages
   const canonical: string[] = PIPELINE_STAGES.filter((s) => (oracle ? s !== 'detect' && s !== 'track' : s !== 'oracle'))
   const extra = state.order.filter((n) => !canonical.includes(n))
