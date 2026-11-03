@@ -5,6 +5,7 @@ x-mtmct: &mtmct
   user: "${MTMCT_UID:-1000}:${MTMCT_GID:-1000}"
   environment:
     MTMCT_MAX_RSS_GB: "${MTMCT_MAX_RSS_GB:-9}"
+    HOME: /tmp  # non-root uid has no home: huggingface_hub / OpenVINO need a writable one
   volumes:
     - ./data:/app/data
     - ./cache:/app/cache
