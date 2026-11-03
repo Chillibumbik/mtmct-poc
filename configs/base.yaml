@@ -5,7 +5,10 @@ data:
 detect: {name: yolox_s, params: {conf: 0.3, nms: 0.45, input_size: 640}}
 track: {name: bytetrack, params: {}}
 reid: {name: osnet_ain_x1_0, params: {batch: 32}}
-refine: {enabled: true}
+# T13a (garden1 tune, osnet_ain_x1_0; confirmed on garden2 test and terrace1): cutting tracklets at appearance
+# jumps is the main lever against in-camera ID switches. Thresholds are on the ReID model's cosine scale;
+# stitch_app_thr must be >= split_thr, otherwise stitching glues the cut parts back.
+refine: {enabled: true, split_thr: 0.75, stitch_app_thr: 0.75, window: 7}
 portrait: {reid_stride: 3, top_k: 10}
 geometry: {foot_point: {name: bottom_center}, smooth_window: 5}
 associate:

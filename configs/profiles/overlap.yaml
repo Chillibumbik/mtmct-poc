@@ -1,4 +1,6 @@
-# Overlapping calibrated cameras: geometry on the ground plane is the main cue (spec §8.7).
+# Overlapping calibrated cameras: ground-plane geometry fused with appearance (spec §8.7).
+# Soft by default: with real detections, truncated boxes and contaminated tracklets make hard gating
+# split true matches (EPFL Terrace full: cross IDF1 0.30 hard → 0.50 soft; oracle 1.0 either way).
 associate:
   costs:
-    geometry: {weight: 1.0, params: {gate_m: 1.5, max_speed_mps: 3.0}}
+    geometry: {weight: 1.0, params: {gate_m: 1.5, max_speed_mps: 3.0, hard: false}}

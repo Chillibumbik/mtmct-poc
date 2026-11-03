@@ -80,11 +80,11 @@ class DataCfg(_Strict):
 
 class RefineCfg(_Strict):
     enabled: bool = True
-    split_thr: float = 0.5
-    window: int = 10
+    split_thr: float = 0.75
+    window: int = 7
     max_gap_s: float = 1.0
     stitch_dist_px: float = 80.0
-    stitch_app_thr: float = 0.6
+    stitch_app_thr: float = 0.75
     min_len: int = 8
     min_score: float = 0.4
     interp_gap: int = 10
