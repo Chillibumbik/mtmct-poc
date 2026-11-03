@@ -1,8 +1,8 @@
 profile: overlap
 data: {target_fps: 2}
-# T13b, chosen on the tune split (first 90 %) only: dense crowd (289 people in 180 s, 7 views) → the default
-# solver threshold 0.45 over-merges (71 ids). Threshold curve, tune: full IDF1 0.257 @0.45 → 0.285 @0.30,
-# oracle 0.574 @0.45 → 0.786 @0.30 (best 0.845 @0.25). Soft geometry kept: hard gating is worse in full
-# (0.244 vs 0.285 @0.30), geometry weight 2 is no better than 1 (UI sweeps «wildtrack tune · …», runs #13-#18).
+# Tune (first 90 %), full: geometry weight 0 / 0.25 / 0.5 / 1 → cross IDF1 0.297 / 0.296 / 0.292 / 0.285 → off;
+# dense crowd: threshold 0.30 (0.45 over-merges; oracle tune 0.574 @0.45 → 0.786 @0.30). UI sweep «v2 · tune · wildtrack …».
 associate:
+  costs:
+    geometry: {weight: 0.0}
   solver: {name: agglomerative, params: {linkage: average, threshold: 0.3}}

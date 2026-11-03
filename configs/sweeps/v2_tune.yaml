@@ -1,0 +1,13 @@
+# T13b v2 (code after review wave 96cccab): profile decisions on TUNE splits only.
+# Geometry weight (soft) on full tune; CHIRLA time cost with the reworked camera-link model (overlap pairs = no info).
+sweeps:
+  - {name: "v2 · tune · garden1 · geometry weight", dataset: campus, sequence: garden1, split: tune, mode: full,
+     grid: {associate.costs.geometry.weight: [0.0, 0.25, 0.5, 1.0]}}
+  - {name: "v2 · tune · wildtrack · geometry weight", dataset: wildtrack, sequence: main, split: tune, mode: full,
+     grid: {associate.costs.geometry.weight: [0.0, 0.25, 0.5, 1.0]}}
+  - {name: "v2 · tune · chirla seq_001 · oracle · time", dataset: chirla, sequence: seq_001, split: tune, mode: oracle,
+     grid: {associate.costs.time.weight: [0.0, 0.5], associate.costs.time.params.hard: [true, false]}}
+  - {name: "v2 · tune · chirla seq_001 · full · time", dataset: chirla, sequence: seq_001, split: tune, mode: full,
+     grid: {associate.costs.time.weight: [0.0, 0.5], associate.costs.time.params.hard: [true, false]}}
+  - {name: "v2 · tune · aic24 · geometry weight", dataset: aic24, sequence: scene_041, split: tune, mode: full,
+     grid: {associate.costs.geometry.weight: [0.0, 0.25, 0.5, 1.0]}}

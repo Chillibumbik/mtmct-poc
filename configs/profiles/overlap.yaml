@@ -1,6 +1,7 @@
 # Overlapping calibrated cameras: ground-plane geometry fused with appearance (spec §8.7).
 # Soft by default: with real detections, truncated boxes and contaminated tracklets make hard gating
 # split true matches (EPFL Terrace full: cross IDF1 0.30 hard → 0.50 soft; oracle 1.0 either way).
+# Full tune, geometry weight 0 → 1: AIC24 0.656 → 0.682, garden1 0.624 → 0.627 (0.639 @0.5), WILDTRACK 0.297 → 0.285 (off there).
 associate:
   costs:
     geometry: {weight: 1.0, params: {gate_m: 1.5, max_speed_mps: 3.0, hard: false}}

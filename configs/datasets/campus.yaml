@@ -2,6 +2,7 @@ profile: overlap
 data: {target_fps: 10}
 # Tuned on the tune split (garden1, oracle): CAMPUS calibration is noisy (same-person cross-camera
 # ground distance median 1-1.7 m, p90 up to 9 m), so geometry is a soft cost without hard gating.
+# v2 full tune: geometry weight 0 / 0.25 / 0.5 / 1 → cross IDF1 0.624 / 0.642 / 0.639 / 0.627 → keep 0.5 (gain ≈ noise).
 associate:
   costs:
     geometry: {weight: 0.5, params: {gate_m: 5.0, hard: false}}

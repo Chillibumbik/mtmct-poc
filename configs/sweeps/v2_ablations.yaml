@@ -1,0 +1,44 @@
+# T13b v2: ablations §9.5 on test splits with final configs (code after review wave 96cccab).
+# garden2 = overlap profile, chirla seq_002 = nonoverlap profile. The default point equals the v2 final run.
+# ReID models use model-specific refine/solver thresholds from T13a (garden1 tune): cosine scales differ.
+runs:
+  - {name: "v2 · ablation garden2 test · costs: appearance only", dataset: campus, sequence: garden2, split: test, mode: full,
+     overrides: {associate.costs.geometry.weight: 0.0}}
+  - {name: "v2 · ablation garden2 test · costs: + geometry hard", dataset: campus, sequence: garden2, split: test, mode: full,
+     overrides: {associate.costs.geometry.params.hard: true}}
+  - {name: "v2 · ablation garden2 test · refine off", dataset: campus, sequence: garden2, split: test, mode: full,
+     overrides: {refine.enabled: false}}
+  - {name: "v2 · ablation garden2 test · portrait mean-all (top_k 1000)", dataset: campus, sequence: garden2, split: test, mode: full,
+     overrides: {portrait.top_k: 1000}}
+  - {name: "v2 · ablation garden2 test · rerank", dataset: campus, sequence: garden2, split: test, mode: full,
+     overrides: {associate.rerank: {k1: 20, k2: 6, lambda_: 0.3}}}
+  - {name: "v2 · ablation garden2 test · solver anchor", dataset: campus, sequence: garden2, split: test, mode: full,
+     overrides: {associate.solver.name: anchor}}
+  - {name: "v2 · ablation garden2 test · reid osnet_x0_25 (split/stitch 0.8)", dataset: campus, sequence: garden2, split: test, mode: full,
+     overrides: {reid.name: osnet_x0_25, refine.split_thr: 0.8, refine.stitch_app_thr: 0.8}}
+  - {name: "v2 · ablation garden2 test · reid omz_0287 (split/stitch 0.7, thr 0.7)", dataset: campus, sequence: garden2, split: test, mode: full,
+     overrides: {reid.name: omz_0287, refine.split_thr: 0.7, refine.stitch_app_thr: 0.7, associate.solver.params.threshold: 0.7}}
+  - {name: "v2 · ablation garden2 test · detector yolox_tiny", dataset: campus, sequence: garden2, split: test, mode: full,
+     overrides: {detect.name: yolox_tiny}}
+  - {name: "v2 · ablation chirla test · costs: + time hard", dataset: chirla, sequence: seq_002, split: test, mode: full,
+     overrides: {associate.costs.time.weight: 0.5}}
+  - {name: "v2 · ablation chirla test · costs: + time soft", dataset: chirla, sequence: seq_002, split: test, mode: full,
+     overrides: {associate.costs.time.weight: 0.5, associate.costs.time.params.hard: false}}
+  - {name: "v2 · ablation chirla test · oracle · costs: + time hard", dataset: chirla, sequence: seq_002, split: test, mode: oracle,
+     overrides: {associate.costs.time.weight: 0.5}}
+  - {name: "v2 · ablation chirla test · refine off", dataset: chirla, sequence: seq_002, split: test, mode: full,
+     overrides: {refine.enabled: false}}
+  - {name: "v2 · ablation chirla test · portrait mean-all (top_k 1000)", dataset: chirla, sequence: seq_002, split: test, mode: full,
+     overrides: {portrait.top_k: 1000}}
+  - {name: "v2 · ablation chirla test · rerank", dataset: chirla, sequence: seq_002, split: test, mode: full,
+     overrides: {associate.rerank: {k1: 20, k2: 6, lambda_: 0.3}}}
+  - {name: "v2 · ablation chirla test · solver anchor", dataset: chirla, sequence: seq_002, split: test, mode: full,
+     overrides: {associate.solver.name: anchor}}
+sweeps:
+  # H2 on all overlap test/dev sequences: appearance only (weight 0) vs soft vs hard geometry (association only, cached)
+  - {name: "v2 · ablation overlap · costs (terrace1 all)", dataset: epfl_terrace, sequence: terrace1, split: all, mode: full,
+     grid: {associate.costs.geometry.weight: [0.0, 1.0], associate.costs.geometry.params.hard: [false, true]}}
+  - {name: "v2 · ablation overlap · costs (wildtrack test)", dataset: wildtrack, sequence: main, split: test, mode: full,
+     grid: {associate.costs.geometry.weight: [0.0, 1.0], associate.costs.geometry.params.hard: [false, true]}}
+  - {name: "v2 · ablation overlap · costs (aic24 test)", dataset: aic24, sequence: scene_041, split: test, mode: full,
+     grid: {associate.costs.geometry.weight: [0.0, 1.0], associate.costs.geometry.params.hard: [false, true]}}

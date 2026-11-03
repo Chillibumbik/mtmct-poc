@@ -1,0 +1,17 @@
+# T13b v2: final matrix with final configs (code after review wave 96cccab), full + oracle per sequence.
+# Submit: uv run python agent-dump/scripts/t13b_submit.py configs/sweeps/v2_final_matrix.yaml
+runs:
+  - {name: "v2 · final oracle · chirla seq_002 test", dataset: chirla, sequence: seq_002, split: test, mode: oracle}
+  - {name: "v2 · final full · chirla seq_002 test", dataset: chirla, sequence: seq_002, split: test, mode: full}
+  - {name: "v2 · final oracle · terrace1 all (dev)", dataset: epfl_terrace, sequence: terrace1, split: all, mode: oracle}
+  - {name: "v2 · final full · terrace1 all (dev)", dataset: epfl_terrace, sequence: terrace1, split: all, mode: full}
+  - {name: "v2 · final oracle · garden1 tune", dataset: campus, sequence: garden1, split: tune, mode: oracle}
+  - {name: "v2 · final full · garden1 tune", dataset: campus, sequence: garden1, split: tune, mode: full}
+  - {name: "v2 · final oracle · garden2 test", dataset: campus, sequence: garden2, split: test, mode: oracle}
+  - {name: "v2 · final full · garden2 test", dataset: campus, sequence: garden2, split: test, mode: full}
+  - {name: "v2 · final oracle · wildtrack test", dataset: wildtrack, sequence: main, split: test, mode: oracle}
+  - {name: "v2 · final full · wildtrack test", dataset: wildtrack, sequence: main, split: test, mode: full}
+  - {name: "v2 · final oracle · wildtrack all", dataset: wildtrack, sequence: main, split: all, mode: oracle}
+  - {name: "v2 · final full · wildtrack all", dataset: wildtrack, sequence: main, split: all, mode: full}
+  - {name: "v2 · final oracle · aic24 scene_041 test", dataset: aic24, sequence: scene_041, split: test, mode: oracle}
+  - {name: "v2 · final full · aic24 scene_041 test", dataset: aic24, sequence: scene_041, split: test, mode: full}
