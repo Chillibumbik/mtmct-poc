@@ -291,6 +291,18 @@ def test_eval_empty_gt_and_single_camera() -> None:
     assert res["per_camera"] == {} and res["per_camera_mean"] == {}
 
 
+def test_per_camera_mean_skips_cameras_without_gt_and_predictions() -> None:
+    """A camera nobody walks through (no GT, no prediction) has undefined metrics: it must not pull the mean to 0."""
+    seq = _seq(n_cams=3)
+    gt = _grid_gt(["c0", "c1"], range(0, 20), range(2))
+    res = evaluate_run(gt, _pred_from_gt(gt), seq, _all_frames(seq))
+    assert res["per_camera_mean"]["HOTA"] == pytest.approx(1.0)
+    assert res["per_camera_mean"]["IDF1"] == pytest.approx(1.0)
+    fp_only = _pred_from_gt(_grid_gt(["c2"], range(0, 20), range(1)))  # false positives in the empty camera count
+    res = evaluate_run(gt, pd.concat([_pred_from_gt(gt), fp_only]), seq, _all_frames(seq))
+    assert res["per_camera_mean"]["IDF1"] == pytest.approx(2 / 3)
+
+
 def test_eval_frame_intersection() -> None:
     """GT annotated at 2 fps (every 5th frame), prediction at 10 fps: only shared frames are scored."""
     seq = _seq(n_cams=2, n_frames=100)

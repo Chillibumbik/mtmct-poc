@@ -1,0 +1,9 @@
+# T13b, step 2: dataset-specific checks on TUNE splits only (wildtrack tune = first 90 %, aic24 tune = first half).
+# Association-only grid (heavy stages cached after the first point); solver threshold read from metrics.json threshold_curve.
+sweeps:
+  - {name: "wildtrack tune · oracle · geometry hard?", dataset: wildtrack, sequence: main, split: tune, mode: oracle,
+     grid: {associate.costs.geometry.params.hard: [false, true]}}
+  - {name: "wildtrack tune · full · geometry hard? × weight", dataset: wildtrack, sequence: main, split: tune, mode: full,
+     grid: {associate.costs.geometry.params.hard: [false, true], associate.costs.geometry.weight: [1.0, 2.0]}}
+  - {name: "aic24 tune · oracle · geometry hard?", dataset: aic24, sequence: scene_041, split: tune, mode: oracle,
+     grid: {associate.costs.geometry.params.hard: [false, true]}}

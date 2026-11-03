@@ -1,0 +1,42 @@
+# T13b, step 3: ablations §9.5 on test splits (garden2 = overlap, chirla seq_002 = "nonoverlap" profile).
+# The default point of every group equals the final run of that sequence (configs as committed + T13b dataset yamls).
+# ReID models use model-specific refine/solver thresholds found on garden1 tune in T13a (cosine scales differ).
+runs:
+  # costs: appearance only → + geometry (default = final run) → + geometry hard
+  - {name: "ablation garden2 test · costs: appearance only", dataset: campus, sequence: garden2, split: test, mode: full,
+     overrides: {associate.costs: {appearance: {weight: 1.0, params: {agg: mean}}}}}
+  - {name: "ablation garden2 test · costs: appearance + geometry hard", dataset: campus, sequence: garden2, split: test, mode: full,
+     overrides: {associate.costs.geometry.params.hard: true}}
+  - {name: "ablation garden2 test · reid: osnet_x0_25 (split/stitch 0.8)", dataset: campus, sequence: garden2, split: test, mode: full,
+     overrides: {reid.name: osnet_x0_25, refine.split_thr: 0.8, refine.stitch_app_thr: 0.8}}
+  - {name: "ablation garden2 test · reid: omz_0287 (split/stitch 0.7, thr 0.7)", dataset: campus, sequence: garden2, split: test, mode: full,
+     overrides: {reid.name: omz_0287, refine.split_thr: 0.7, refine.stitch_app_thr: 0.7, associate.solver.params.threshold: 0.7}}
+  # costs on chirla: appearance only = final default; + time hard / soft (nonoverlap profile weight 0.5)
+  - {name: "ablation chirla test · costs: appearance + time hard", dataset: chirla, sequence: seq_002, split: test, mode: full,
+     overrides: {associate.costs.time.weight: 0.5}}
+  - {name: "ablation chirla test · costs: appearance + time soft", dataset: chirla, sequence: seq_002, split: test, mode: full,
+     overrides: {associate.costs.time.weight: 0.5, associate.costs.time.params.hard: false}}
+  - {name: "ablation chirla test · oracle · costs: appearance + time hard", dataset: chirla, sequence: seq_002, split: test, mode: oracle,
+     overrides: {associate.costs.time.weight: 0.5}}
+sweeps:
+  - {name: "ablation garden2 test · refine off/on", dataset: campus, sequence: garden2, split: test, mode: full,
+     grid: {refine.enabled: [false, true]}}
+  - {name: "ablation garden2 test · solver × rerank", dataset: campus, sequence: garden2, split: test, mode: full,
+     grid: {associate.solver.name: [agglomerative, anchor], associate.rerank: [null, {k1: 20, k2: 6, lambda_: 0.3}]}}
+  - {name: "ablation chirla test · refine off/on", dataset: chirla, sequence: seq_002, split: test, mode: full,
+     grid: {refine.enabled: [false, true]}}
+  - {name: "ablation chirla test · solver × rerank", dataset: chirla, sequence: seq_002, split: test, mode: full,
+     grid: {associate.solver.name: [agglomerative, anchor], associate.rerank: [null, {k1: 20, k2: 6, lambda_: 0.3}]}}
+  - {name: "ablation garden2 test · portrait top-k vs mean-all", dataset: campus, sequence: garden2, split: test, mode: full,
+     grid: {portrait.top_k: [10, 1000]}}
+  - {name: "ablation garden2 test · detector", dataset: campus, sequence: garden2, split: test, mode: full,
+     grid: {detect.name: [yolox_s, yolox_tiny]}}
+  - {name: "ablation chirla test · portrait top-k vs mean-all", dataset: chirla, sequence: seq_002, split: test, mode: full,
+     grid: {portrait.top_k: [10, 1000]}}
+  # H2 on more overlap datasets: appearance only vs default (+ soft geometry) vs hard geometry (association-only, cached)
+  - {name: "ablation overlap · costs (terrace1 all)", dataset: epfl_terrace, sequence: terrace1, split: all, mode: full,
+     grid: {associate.costs.geometry.weight: [0.0, 1.0], associate.costs.geometry.params.hard: [false, true]}}
+  - {name: "ablation overlap · costs (wildtrack test)", dataset: wildtrack, sequence: main, split: test, mode: full,
+     grid: {associate.costs.geometry.weight: [0.0, 1.0], associate.costs.geometry.params.hard: [false, true]}}
+  - {name: "ablation overlap · costs (aic24 test)", dataset: aic24, sequence: scene_041, split: test, mode: full,
+     grid: {associate.costs.geometry.weight: [0.0, 1.0], associate.costs.geometry.params.hard: [false, true]}}

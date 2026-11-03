@@ -48,7 +48,10 @@ def evaluate_run(
     gt_ids, pred_ids = gt["person_id"].to_numpy(np.int64), pred["global_id"].to_numpy(np.int64)
 
     per_camera = {cam: mot_metrics([s for s in steps if s.camera_id == cam], gt_ids, pred_ids, iou) for cam in frames}
-    mean = {k: float(np.mean([m[k] for m in per_camera.values()])) for k in next(iter(per_camera.values()), {})}
+    # Cameras with neither GT nor predictions (nobody passes) have undefined metrics: leave them out of the mean.
+    active = {s.camera_id for s in steps if len(s.gt) or len(s.pred)}
+    scored = [m for cam, m in per_camera.items() if cam in active] or list(per_camera.values())
+    mean = {k: float(np.mean([m[k] for m in scored])) for k in next(iter(per_camera.values()), {})}
 
     matches = matches_table(gt, pred, *step_matches(steps, iou), seq)
     g_rows = np.concatenate([s.gt for s in steps]) if steps else np.zeros(0, np.int64)

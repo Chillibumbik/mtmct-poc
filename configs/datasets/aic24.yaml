@@ -1,2 +1,8 @@
 profile: overlap
 data: {target_fps: 5}
+# T13b, chosen on the tune split (first half) with oracle tracklets only (a full tune run did not fit the budget):
+# synthetic people sit far apart on the OSNet cosine scale, the default threshold 0.45 leaves 90 ids for 28 people.
+# Threshold curve, oracle tune: IDF1 0.613 @0.45, 0.818 @0.60, 0.972 @0.65-0.80 → 0.65, the low end of the plateau.
+# Hard geometry gating hurts (0.619 at best) → soft geometry of the overlap profile kept (runs #19-#20).
+associate:
+  solver: {name: agglomerative, params: {linkage: average, threshold: 0.65}}

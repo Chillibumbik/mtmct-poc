@@ -8,7 +8,7 @@ from sqlmodel import select
 from test_api_fixtures import FakeRunner, home, seq  # noqa: F401
 
 from mtmct.config import load_config, paths
-from mtmct.db import Dataset, Job, JobEvent, Metric, Run, open_session
+from mtmct.db import Dataset, Job, JobEvent, Metric, Run, Sweep, open_session
 from mtmct.worker.main import Worker
 
 
@@ -121,6 +121,26 @@ def test_worker_sweep_creates_run_jobs(home, seq):
         kids = s.exec(select(Job).where(Job.kind == "run").order_by(Job.id)).all()
         assert [j.run_id for j in kids] == run_ids and all(j.status == "queued" for j in kids)
         assert [s.get(Run, r).job_id for r in run_ids] == [j.id for j in kids]
+
+
+def test_worker_sweep_with_sweep_row_finishes_done(home, seq):
+    """The final event reads the sweep name after the session is closed: it must not hit an expired instance."""
+    rid = _make_run()[0]
+    with open_session() as s:
+        sweep = Sweep(name="grid")
+        s.add(sweep)
+        s.flush()
+        run = s.get(Run, rid)
+        s.delete(s.get(Job, run.job_id))
+        run.job_id, run.sweep_id = None, sweep.id
+        s.add(run)
+        job = Job(kind="sweep", title="sweep", payload={"sweep_id": sweep.id})
+        s.add(job)
+        s.commit()
+        jid = job.id
+    Worker(runner=FakeRunner()).tick()
+    with open_session() as s:
+        assert s.get(Job, jid).status == "done", s.get(Job, jid).error
 
 
 def test_worker_dataset_prepare_custom_import_error(home, monkeypatch):

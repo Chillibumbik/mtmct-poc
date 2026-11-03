@@ -1,2 +1,10 @@
 profile: nonoverlap
 data: {target_fps: 10}
+# T13b, chosen on the tune split (seq_001) only: the time cost is OFF (weight 0 disables it, cannot-links included).
+# Cameras 1-4 look into one room, so people are visible in 2-3 cameras at once; topology.json windows fitted on GT
+# degenerate to ~[-2, 2] s and the camera-link model forbids true same-person pairs (oracle: 7/15 pairs on seq_001),
+# hard or soft alike. Tune, full: cross IDF1 0.700 (appearance) vs 0.699 (+time), handover 0.71 vs 0.29,
+# ids 8 vs 14 for 9 people (runs #9-#12 in the UI); the HOTA gain of +time (+0.02) comes from never linking cameras.
+associate:
+  costs:
+    time: {weight: 0.0}

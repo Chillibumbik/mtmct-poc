@@ -260,6 +260,7 @@ class Worker:
             job = s.get(Job, job_id)
             assert job is not None
             sweep = s.get(Sweep, job.payload["sweep_id"])
+            name = sweep.name if sweep else ""  # read before commit: the instance expires and detaches
             runs = s.exec(select(Run).where(Run.sweep_id == job.payload["sweep_id"]).order_by(col(Run.id))).all()
             for run in runs:
                 child = Job(
@@ -274,7 +275,7 @@ class Worker:
             JobEventIn(
                 stage="sweep",
                 progress=1.0,
-                message=f"поставлено в очередь прогонов: {len(runs)} ({sweep.name if sweep else ''})",
+                message=f"поставлено в очередь прогонов: {len(runs)} ({name})",
             )
         )
 

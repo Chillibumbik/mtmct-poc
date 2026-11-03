@@ -1,0 +1,18 @@
+# T13b, step 1: CHIRLA profile choice on the TUNE split only (seq_001). Submit: agent-dump/scripts/t13b_submit.py
+# Cost variants: A appearance only | B appearance + time soft (hard=false) | C appearance + time hard (nonoverlap default)
+# | D overlap profile (geometry cost, disabled without calibration -> geometry-free).
+runs:
+  - {name: "chirla tune · oracle · A appearance only", dataset: chirla, sequence: seq_001, split: tune, mode: oracle,
+     overrides: {associate.costs: {appearance: {weight: 1.0, params: {agg: mean}}}}}
+  - {name: "chirla tune · oracle · B appearance + time soft", dataset: chirla, sequence: seq_001, split: tune, mode: oracle,
+     overrides: {associate.costs.time.params.hard: false}}
+  - {name: "chirla tune · oracle · C appearance + time hard", dataset: chirla, sequence: seq_001, split: tune, mode: oracle}
+  - {name: "chirla tune · oracle · D overlap profile (geometry-free)", dataset: chirla, sequence: seq_001, split: tune, mode: oracle,
+     profile: overlap}
+  - {name: "chirla tune · full · C appearance + time hard", dataset: chirla, sequence: seq_001, split: tune, mode: full}
+  - {name: "chirla tune · full · A appearance only", dataset: chirla, sequence: seq_001, split: tune, mode: full,
+     overrides: {associate.costs: {appearance: {weight: 1.0, params: {agg: mean}}}}}
+  - {name: "chirla tune · full · B appearance + time soft", dataset: chirla, sequence: seq_001, split: tune, mode: full,
+     overrides: {associate.costs.time.params.hard: false}}
+  - {name: "chirla tune · full · D overlap profile (geometry-free)", dataset: chirla, sequence: seq_001, split: tune, mode: full,
+     profile: overlap}
