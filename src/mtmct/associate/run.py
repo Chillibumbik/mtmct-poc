@@ -34,6 +34,8 @@ def build_context(
 def _fused(ctx: AssocContext, cfg: AssociateCfg) -> tuple[np.ndarray, np.ndarray]:
     parts: list[tuple[CostMatrix, float]] = []
     for name, spec in cfg.costs.items():
+        if spec.weight <= 0:  # disabled cost: its cannot-links must not apply either (ablation "off")
+            continue
         cm: CostMatrix = registry.create("cost", name, spec.params)(ctx)
         if name == "appearance" and cfg.rerank is not None:
             cm = CostMatrix(k_reciprocal_rerank(cm.dist, **cfg.rerank), cm.cannot_link)
