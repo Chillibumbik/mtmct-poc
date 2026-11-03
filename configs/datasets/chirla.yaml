@@ -1,0 +1,2 @@
+profile: nonoverlap
+data: {target_fps: 10}
