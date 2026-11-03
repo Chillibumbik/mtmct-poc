@@ -1,7 +1,10 @@
-# `make up` -> http://localhost:8080 . Host dirs are bind-mounted; fetch models on the host with `make setup`
-# (the OSNet export needs torch, which is deliberately not in the image).
+# Bound to localhost only: the app has no auth and shows video of people. Reach it via an SSH tunnel.
+# Server knobs (env or .env): MTMCT_PORT, MTMCT_UID/GID, MTMCT_MAX_RSS_GB, *_MEM limits.
 x-mtmct: &mtmct
   image: mtmct:latest
+  user: "${MTMCT_UID:-1000}:${MTMCT_GID:-1000}"
+  environment:
+    MTMCT_MAX_RSS_GB: "${MTMCT_MAX_RSS_GB:-9}"
   volumes:
     - ./data:/app/data
     - ./cache:/app/cache
@@ -15,7 +18,9 @@ services:
     <<: *mtmct
     build: .
     ports:
-      - "127.0.0.1:8080:8000"
+      - "127.0.0.1:${MTMCT_PORT:-8080}:8000"
+    mem_limit: "${API_MEM:-2g}"
   worker:
     <<: *mtmct
     command: ["mtmct", "worker"]
+    mem_limit: "${WORKER_MEM:-10g}"

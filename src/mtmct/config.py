@@ -186,5 +186,7 @@ def load_config(
     merged = deep_merge(merged, _read_yaml(root / "profiles" / f"{profile}.yaml"))
     merged = deep_merge(merged, {k: v for k, v in ds.items() if k in RunConfig.model_fields})
     merged["profile"] = profile
+    if rss := os.environ.get("MTMCT_MAX_RSS_GB"):  # deployment-wide RAM guard (small servers)
+        merged = apply_overrides(merged, {"data.max_rss_gb": float(rss)})
     merged = apply_overrides(merged, overrides or {})
     return RunConfig.model_validate(merged)
