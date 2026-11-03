@@ -7,7 +7,6 @@ import { ExperimentsPage } from '@/pages/Experiments'
 import { JobsPage } from '@/pages/Jobs'
 import { NewRunPage } from '@/pages/NewRun'
 import { OverviewPage } from '@/pages/Overview'
-import { PlaceholderPage } from '@/pages/Placeholder'
 
 // Search params are part of the URL so every view is linkable (spec §10.2 UX).
 // TanStack Router JSON-parses search values, hence the coercions.
@@ -68,23 +67,31 @@ const runDetail = createRoute({
   component: lazyRouteComponent(() => import('@/pages/RunDetail'), 'RunDetailPage'),
 })
 
-// Built by T7 (web/src/features/{player,errors,compare}); stubs keep links and URLs stable.
+// T7 features (web/src/features/{player,bev,errors,compare}); lazy chunks.
+export const playerSearch = z.object({
+  t: z.coerce.number().optional().catch(undefined),
+  camera: str,
+  gid: num,
+  mode: z.enum(['pred', 'gt', 'diff']).optional().catch(undefined),
+  tab: z.enum(['grid', 'bev']).optional().catch(undefined),
+})
 const runPlayer = createRoute({
   getParentRoute: () => rootRoute,
   path: '/runs/$runId/player',
-  validateSearch: (s) => z.object({ t: z.coerce.number().optional().catch(undefined), camera: str, gid: num }).parse(s),
-  component: () => <PlaceholderPage title="Плеер" />,
+  validateSearch: (s) => playerSearch.parse(s),
+  component: lazyRouteComponent(() => import('@/features/player/PlayerPage'), 'PlayerPage'),
 })
 const runErrors = createRoute({
   getParentRoute: () => rootRoute,
   path: '/runs/$runId/errors',
-  component: () => <PlaceholderPage title="Разбор ошибок" />,
+  validateSearch: (s) => z.object({ kind: z.enum(['merges', 'splits']).optional().catch(undefined) }).parse(s),
+  component: lazyRouteComponent(() => import('@/features/errors/ErrorsPage'), 'ErrorsPage'),
 })
 const compare = createRoute({
   getParentRoute: () => rootRoute,
   path: '/compare',
   validateSearch: (s) => z.object({ runs: str }).parse(s),
-  component: () => <PlaceholderPage title="Сравнение прогонов" />,
+  component: lazyRouteComponent(() => import('@/features/compare/ComparePage'), 'ComparePage'),
 })
 
 const resources = createRoute({

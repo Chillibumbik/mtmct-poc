@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw/http'
 import { sse } from 'msw/sse'
 import { delay } from 'msw/utils/delay'
 import type { CompareOut, CompareRow, RunCreate, SweepCreate, TrackBoxes, TrajectoriesOut } from '@/api/types.gen'
-import { metricDef } from '@/lib/metrics'
+import { KEY_METRIC_KEYS } from '@/lib/metrics'
 import { PROFILES, REGISTRY, SYSTEM, previewSvg } from './fixtures'
 import { cancelJob, createRun, createSweep, db, fetchDataset, publicJob, restartJob, runDetail, runErrors, tick, uploadCustom } from './sim'
 
@@ -36,20 +36,8 @@ function worldAt(p: ReturnType<typeof people>[number], t: number) {
   return [p.from[0] + (p.to[0] - p.from[0]) * f, p.from[1] + (p.to[1] - p.from[1]) * f] as const
 }
 
-const COMPARE_KEYS: [string, string][] = [
-  ['cross_camera', 'HOTA'],
-  ['cross_camera', 'IDF1'],
-  ['cross_camera', 'AssA'],
-  ['cross_camera', 'IDP'],
-  ['cross_camera', 'IDR'],
-  ['identity', 'pairwise_f1'],
-  ['identity', 'bcubed_f'],
-  ['identity', 'false_merges'],
-  ['identity', 'false_splits'],
-  ['identity', 'handover_success'],
-  ['reid', 'rank1'],
-  ['reid', 'mAP'],
-]
+// Same rows as the backend: one per KeyMetrics field; lower is better for errors and resources.
+const LOWER_IS_BETTER = new Set(['false_merges', 'false_splits', 'peak_rss_gb', 'wall_time_s'])
 
 export const handlers = [
   http.all('/api/*', () => {
@@ -220,19 +208,14 @@ export const handlers = [
     await latency()
     const ids = (new URL(request.url).searchParams.get('runs') ?? '').split(',').map(Number).filter(Boolean)
     const runs = ids.map((id) => runById(String(id))).filter((r) => r !== undefined)
-    const rows: CompareRow[] = COMPARE_KEYS.map(([section, metric]) => {
-      const values = Object.fromEntries(
-        runs.map((r) => {
-          const sec = db.runData.get(r.id)?.metrics[section] as Record<string, number> | undefined
-          return [String(r.id), sec?.[metric] ?? null]
-        }),
-      )
+    const rows: CompareRow[] = KEY_METRIC_KEYS.map((metric) => {
+      const values = Object.fromEntries(runs.map((r) => [String(r.id), r.key_metrics[metric] ?? null]))
       const first = values[String(runs[0]?.id)]
-      const higher = metricDef(metric)?.higherIsBetter !== false
+      const higher = !LOWER_IS_BETTER.has(metric)
       const valid = runs.filter((r) => values[String(r.id)] != null)
       const best = valid.sort((a, b) => (higher ? 1 : -1) * ((values[String(b.id)] ?? 0) - (values[String(a.id)] ?? 0)))[0]
       return {
-        metric: `${section}.${metric}`,
+        metric,
         values,
         deltas: Object.fromEntries(Object.entries(values).map(([k, v]) => [k, v == null || first == null ? null : v - first])),
         best_run_id: best?.id ?? null,

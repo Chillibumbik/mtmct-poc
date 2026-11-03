@@ -1,0 +1,12 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`colorForId > is stable across calls and pinned to known values 1`] = `
+[
+  "#E69F00",
+  "#0072B2",
+  "#F0E442",
+  "#882255",
+  "#F0E442",
+  "#E69F00",
+]
+`;
